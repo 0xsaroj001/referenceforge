@@ -1,0 +1,27 @@
+# User instruction: keep competitor repo data and derived analysis local.
+/research/local-competitor-audit/
+/PREVIOUS_WINNER_AUDIT.md
+/LOCAL_RESEARCH_POLICY.md
+/ASYMMETRIC_STRATEGY.md
+__pycache__/
+/node_modules/
+/dist/
+/reports/
+/research/
+/STRATEGY.md
+/CURRENT_INTERFACES.md
+**/target/
+.env
+.env.*
+!.env.example
+/deploy/public/
+/deploy/bundle/
+/.wrangler/
+**/.wrangler/
+/LIVE_BENCHMARK_PLAN.md
+/BENCHMARKS.md
+/DEPLOYMENT.md
+/bundle/
+/MEMORY.md
+/AGENTS.md
+/tools/verify-registered-wasm.mjs

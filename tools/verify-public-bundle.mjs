@@ -1,0 +1,16 @@
+import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
+const root=resolve(import.meta.dirname,'..'),dir=resolve(root,'deploy/public');
+const allowed=['artifact-manifest.json','miner.yaml','referenceforge-comparator.wasm'];
+const names=(await readdir(dir)).sort();if(JSON.stringify(names)!==JSON.stringify(allowed))throw new Error('Unexpected public asset set');
+const manifest=JSON.parse(await readFile(resolve(dir,'artifact-manifest.json'),'utf8'));
+const sha=data=>createHash('sha256').update(data).digest('hex');
+if('0x'+sha(await readFile(resolve(dir,'miner.yaml')))!==manifest.yaml_sha256)throw new Error('YAML hash mismatch');
+if(sha(await readFile(resolve(dir,'referenceforge-comparator.wasm')))!==manifest.wasm.sha256)throw new Error('WASM hash mismatch');
+const map=JSON.parse(await readFile(resolve(root,'deploy/bundle/worker.js.map'),'utf8'));
+if(map.sources.some(s=>/research|local-competitor|PREVIOUS_WINNER|STRATEGY\.md|reports\//i.test(s)))throw new Error('Private source was bundled');
+const code=await readFile(resolve(root,'deploy/bundle/worker.js'),'utf8');
+if(/local-competitor-audit|PREVIOUS_WINNER_AUDIT|local-document-archive/i.test(code))throw new Error('Private research markers found in deployment');
+const report={checked_at:new Date().toISOString(),assets:names,bundled_sources:map.sources.length,no_research_sources:true,no_private_research_markers:true,hashes_consistent:true,origin_is_placeholder:manifest.placeholder_origin,status:'local_upload_boundary_check_only_not_a_deployment'};
+await writeFile(resolve(root,'reports/public-bundle-audit.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

@@ -1,0 +1,35 @@
+{
+  "name": "referenceforge",
+  "version": "0.2.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "build:wasm": "node tools/build-wasm.mjs",
+    "test:wasm": "node tools/test-wasm.mjs",
+    "test:rust": "cargo test --manifest-path wasm/comparator/Cargo.toml",
+    "smoke:live": "node tools/smoke-live.mjs",
+    "probe:interfaces": "node tools/probe-interfaces.mjs",
+    "render:miner": "node tools/render-miner.mjs",
+    "test:wazero": "cd wasm/runner && go run . ../../dist/referenceforge-comparator.wasm ../../reports/comparator-vectors.json ../../reports/wasm-wazero.json",
+    "test:official": "node tools/check-official-reference.mjs",
+    "bench:miner": "node tools/benchmark-miner.mjs",
+    "bench:wasm": "node tools/benchmark-wasm.mjs",
+    "bench:live": "node tools/benchmark-live.mjs",
+    "bench:evaluator": "node tools/benchmark-evaluator.mjs",
+    "bench:input-cache": "node tools/benchmark-input-cache.mjs",
+    "check:public-bundle": "node tools/verify-public-bundle.mjs",
+    "smoke:worker": "node tools/smoke-worker.mjs",
+    "prepare:deploy": "node tools/prepare-deploy.mjs",
+    "dev:worker": "wrangler dev --config deploy/wrangler.jsonc --local --port 8788",
+    "build:worker": "wrangler deploy --config deploy/wrangler.jsonc --dry-run --outdir bundle"
+  },
+  "devDependencies": {
+    "@noble/hashes": "2.4.0",
+    "wrangler": "4.152.0"
+  }
+}

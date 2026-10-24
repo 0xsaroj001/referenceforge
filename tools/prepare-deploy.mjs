@@ -1,0 +1,18 @@
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { resolve } from 'node:path';
+import { minerDescriptor } from './render-miner.mjs';
+const args=Object.fromEntries(process.argv.slice(2).map((s,i,a)=>s.startsWith('--')?[s.slice(2),a[i+1]]:null).filter(Boolean));
+if(!args['base-url']||!args.id)throw new Error('Supply --base-url https://referenceforge.YOUR-SUBDOMAIN.workers.dev and --id CANDIDATE_ID');
+const descriptor=minerDescriptor({id:Number(args.id),baseUrl:args['base-url']});
+if(!descriptor.base_url.startsWith('https://'))throw new Error('A public deployment requires HTTPS');
+const root=resolve(import.meta.dirname,'..'),dir=resolve(root,'deploy/public');await mkdir(dir,{recursive:true});
+const allowed=['miner.yaml','referenceforge-comparator.wasm','artifact-manifest.json'];
+for(const name of await readdir(dir))if(!allowed.includes(name))throw new Error('Unexpected asset in upload directory: '+name);
+const text=JSON.stringify(descriptor,null,2)+'\n',hash=createHash('sha256').update(text).digest('hex');
+await writeFile(resolve(dir,'miner.yaml'),text);await writeFile(resolve(dir,'referenceforge-comparator.wasm'),await readFile(resolve(root,'dist/referenceforge-comparator.wasm')));
+const wasm=JSON.parse(await readFile(resolve(root,'dist/manifest.json'),'utf8'));
+const placeholder=descriptor.base_url.includes('your-subdomain');
+const manifest={prepared_at:new Date().toISOString(),status:placeholder?'template_only_not_registration_inputs':'prepared_not_deployed_or_validated',placeholder_origin:placeholder,base_url:descriptor.base_url,yaml_url:descriptor.base_url+'/miner.yaml',yaml_sha256:'0x'+hash,requires_api_key:false,api_key:null,candidate_id:descriptor.id,identity_reserved:false,wasm,upload_assets:allowed,privacy:'Only explicit public assets and the Worker dependency bundle; no research or benchmark reports.'};
+await writeFile(resolve(dir,'artifact-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
+await mkdir(resolve(root,'reports'),{recursive:true});await writeFile(resolve(root,'reports/registration-inputs.json'),JSON.stringify(manifest,null,2)+'\n');console.log(JSON.stringify({yaml_url:manifest.yaml_url,yaml_hash:manifest.yaml_sha256,requires_api_key:false,status:manifest.status},null,2));
