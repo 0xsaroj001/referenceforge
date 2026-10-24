@@ -31,4 +31,4 @@ A separate host check validates structured country/currency, indicator, units, f
 5. The authenticated Telegraph validator accepts the final descriptor and endpoint behavior.
 6. Network admission and valid evaluation evidence are recorded before making ranking or participation claims.
 
-Gates 4 through 6 remain open. Public deployment, payments, external usage and competition success are not established.
+Gate 4 passed on 24 October 2026: the public YAML and WASM match prepared bytes, and all eight public smoke checks pass. Gates 5 and 6 remain open. An earlier source timeout is recorded in the [upload handoff](UPLOAD_TO_TELEGRAPH.md). Payments, independent external usage and competition success are not established.

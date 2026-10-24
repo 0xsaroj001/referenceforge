@@ -1,6 +1,6 @@
 # Hosting and registration preparation
 
-Current state: original Worker package tested locally. Stable public hosting, authenticated Telegraph validation and network registration remain pending.
+Current state: deployed to [referenceforge.0xsaroj001.workers.dev](https://referenceforge.0xsaroj001.workers.dev) on 24 October 2026. The final eight public checks pass and the hosted YAML/WASM match prepared bytes. See the [exact upload handoff](../UPLOAD_TO_TELEGRAPH.md). Authenticated Telegraph validation and network registration remain pending.
 
 A GitHub source repository does not host the dynamic miner. The integration console needs a public HTTPS origin reachable without this laptop.
 
@@ -35,7 +35,7 @@ npx wrangler login
 npx wrangler whoami
 ```
 
-Once the actual Workers subdomain is known, rerun preparation with that origin, rebuild and audit. A deployment needs its own authorization; source publication does not constitute a deployment or purchase.
+Once the actual Workers subdomain is known, rerun preparation with that origin, rebuild and audit. A deployment needs its own authorization; the user authorized this deployment on 24 October 2026. Source publication alone does not constitute deployment or a purchase.
 
 The deployment command, when authorized, is:
 

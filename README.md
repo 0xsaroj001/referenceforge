@@ -2,7 +2,7 @@
 
 ReferenceForge 0.2.1 serves numeric references from the European Central Bank and World Bank. It also includes an original Rust WASM comparator, a structured-context evaluation harness, and a Cloudflare Workers package.
 
-The service has been tested locally with fixtures and real upstream responses. Public deployment, Telegraph validation, network admission and submission remain pending. Local correctness does not establish a competitive ranking advantage.
+The service is deployed at [referenceforge.0xsaroj001.workers.dev](https://referenceforge.0xsaroj001.workers.dev). Public source and artifact checks passed on 24 October 2026. Telegraph validation, network admission and submission remain pending. Local correctness does not establish a competitive ranking advantage. See the [exact upload handoff](UPLOAD_TO_TELEGRAPH.md) for hosted URLs, hashes and observed deployment limits.
 
 ## Run locally
 

@@ -16,6 +16,12 @@ Evidence below describes local development checks captured on 23 October 2026. R
 | Context guard demonstration | 18 false accepts without guard, zero with guard; three valid cases retained | 27 synthetic structured cases, outside WASM |
 | Local Worker smoke | Eight HTTP/artifact checks passed | Local emulator, not production limits |
 
+## Public deployment follow-up, 24 October 2026
+
+The [upload handoff](../UPLOAD_TO_TELEGRAPH.md) records the permanent origin and exact verified hashes. All eight final public HTTP checks passed, including actual ECB and World Bank reads. Hosted YAML and WASM were fetched and compared byte for byte with the prepared assets. A small runtime sample measured 3 to 5 ms CPU on successful data requests.
+
+Initial TLS attempts failed before subsequent success. One early macro read hit the eight-second source deadline and returned 503; subsequent reads recovered. These observations remain part of the evidence. Public hosting checks do not establish sustained uptime, Telegraph validation or evaluator admission.
+
 ## Reproducibility
 
 `bench:miner` and `bench:input-cache` always test the current implementation with self-contained fixtures. They optionally compare our own historical versions when local archives exist; those fields are null in a fresh checkout. No private archive is needed to run the current checks.
@@ -34,6 +40,6 @@ The captured source was an open V2 proposal, not a confirmed deployed node revis
 
 The captured WASM artifact was 2,202 bytes with no imports and 128 KiB initial memory. The microbenchmark uses 25 warmed batches of 20,000 calls and includes JS/WASM crossing. JIT and compilation caching affect results. It is not a cross-machine comparison.
 
-Warm HTTP timings do not resolve cold source latency. A captured cold FX read exceeded the catalogue target, and an earlier World Bank fetch timed out. Public latency, CPU allowance, sustained uptime and useful independent demand remain unmeasured.
+Warm HTTP timings do not resolve cold source latency. A captured cold FX read exceeded the catalogue target, and an earlier World Bank fetch timed out. The public sample above supplies initial latency and CPU observations. Sustained uptime, broader runtime distributions and useful independent demand remain unmeasured.
 
 Live economic values can be revised. The Python check independently transforms the captured bytes; it does not establish an independent source of truth. The context guard can reject metadata mismatches but cannot detect forged matching metadata or verify arbitrary prose.

@@ -4,8 +4,8 @@ Updated 24 October 2026.
 
 | Gap | Current evidence | Closing evidence |
 | --- | --- | --- |
-| Stable public origin | Worker package and local emulator checks | Provider deployment URL plus external exact-byte fetches |
-| Production limits and latency | Warm loopback tests and a few cold source reads | Public measurements and provider runtime metrics |
+| Sustained public availability | Stable deployment and exact-byte fetches passed on 24 October 2026; one early macro timeout recovered | Longer public observation with failures retained |
+| Production limits and latency | Small public sample: 3 to 5 ms CPU for successful data requests; cold FX exceeded the target | Broader public latency and runtime metrics |
 | Miner validation | Descriptor generation and local HTTP tests | Authenticated Telegraph validator result |
 | Descriptor identity | Candidate numeric ID only | Successful identity/conflict validation |
 | Live WASM interface | Pinned official V2 source checked locally | Admission using the actual deployed interface |
