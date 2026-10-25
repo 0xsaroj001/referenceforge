@@ -9,7 +9,7 @@ npm run bench:miner
 npm run bench:input-cache
 ```
 
-Expected: 27 Node tests, 35 authored miner cases, 14 input/cache cases, and 200 successful warm loopback requests. Historical comparison fields are null in a fresh checkout because local archives are not included. Timing varies by machine and run.
+Expected: 37 Node tests, including ten terminal-registration safeguards, 35 authored miner cases, 14 input/cache cases, and 200 successful warm loopback requests. Historical comparison fields are null in a fresh checkout because local archives are not included. Timing varies by machine and run.
 
 ## Comparator checks
 

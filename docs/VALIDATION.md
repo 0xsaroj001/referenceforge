@@ -24,6 +24,8 @@ Initial TLS attempts failed before subsequent success. One early macro read hit 
 
 ## Reproducibility
 
+On 25 October, an optional user-run terminal registration helper added ten mocked safeguard tests, bringing the current Node total to 37. Hidden-input echo/restoration, wrong-network and wrong-signer rejection, exact artifact verification, duplicate-run prevention and ambiguous-broadcast handling pass. Its live read-only check stopped for insufficient Base Sepolia test ETH. No user key was read and no transaction was broadcast by the agent. See the [terminal guide](TERMINAL_REGISTRATION.md).
+
 `bench:miner` and `bench:input-cache` always test the current implementation with self-contained fixtures. They optionally compare our own historical versions when local archives exist; those fields are null in a fresh checkout. No private archive is needed to run the current checks.
 
 Run `build:wasm` before `test:wasm`, then `test:wazero` and `test:official`. The official check fetches the source and MIT license from the fixed revision below only if absent. Both SHA-256 values are verified before execution. Only its package name changes to run it as a standalone Go answer key.

@@ -26,10 +26,14 @@
     "smoke:worker": "node tools/smoke-worker.mjs",
     "prepare:deploy": "node tools/prepare-deploy.mjs",
     "dev:worker": "wrangler dev --config deploy/wrangler.jsonc --local --port 8788",
-    "build:worker": "wrangler deploy --config deploy/wrangler.jsonc --dry-run --outdir bundle"
+    "build:worker": "wrangler deploy --config deploy/wrangler.jsonc --dry-run --outdir bundle",
+    "register:wasm:check": "node tools/register-wasm.mjs --check",
+    "register:wasm": "node tools/register-wasm.mjs --interactive",
+    "register:wasm:status": "node tools/register-wasm.mjs --status"
   },
   "devDependencies": {
     "@noble/hashes": "2.4.0",
+    "ethers": "6.17.0",
     "wrangler": "4.152.0"
   }
 }

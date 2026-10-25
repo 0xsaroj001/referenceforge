@@ -55,3 +55,7 @@ The 2,400-vector corpus includes 2,370 arithmetic-safe cases matching the pinned
 9. [Contribution and publication boundaries](CONTRIBUTING.md)
 
 Generated artifacts, reports, session notes and research archives are excluded from version control. A source repository or a prepared deployment package is not a running miner or a registration receipt.
+
+## Optional user-run terminal registration
+
+The [terminal guide](docs/TERMINAL_REGISTRATION.md) covers the original WASM-only helper. It uses the official Base Sepolia RPC, verifies the pinned hosted artifact, reads the key through a hidden local prompt and asks for explicit confirmation before one broadcast. It never registers the miner. A durable local transaction record blocks a second submission after a timeout. The agent has not run a signing or broadcast mode.
