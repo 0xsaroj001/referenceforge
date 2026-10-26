@@ -15,7 +15,7 @@ export function createUnifiedWorker({ handlerFactory, expanded = false, weather 
   const freshHandler = handlerFactory ?? ((env) => createUnifiedHandler({ expanded, weather,
   onFailure: detail => console.warn(JSON.stringify({service:'ReferenceForge',event:'request_failure',...detail})),
   weatherMiner: createWeather({cache:weatherCache,cacheApi:weather?globalThis.caches?.default:undefined}),
-  numeric: createMiner({ sources: createSources({ cache: numericCache, onError: e => console.warn(JSON.stringify({ service: 'ReferenceForge', event: 'numeric_source_failure', code: e.code ?? e.name })) }) }),
+  numeric: createMiner({ sources: createSources({ cache: numericCache, cacheApi:globalThis.caches?.default, onError: e => console.warn(JSON.stringify({ service: 'ReferenceForge', event: 'numeric_source_failure', code: e.code ?? e.name })) }) }),
   onchain: createOnchainMiner({ networks: networksForEnv(env), onRpcError: detail => console.warn(JSON.stringify({ service: 'ReferenceForge', event: 'rpc_failure', ...detail })) })
 }));
   return { async fetch(request, env = {}) {

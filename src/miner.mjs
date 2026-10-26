@@ -18,6 +18,9 @@ function inputAlias(p, names, normalize = v => String(v).trim()) {
   return supplied[0];
 }
 const queryText = p => inputAlias(p, ['question', 'query', 'q']) ?? '';
+function knownInput(p,allowed){
+  if(!p||Array.isArray(p)||typeof p!=='object'||Object.keys(p).some(k=>!allowed.includes(k)))throw new ServiceError('UNSUPPORTED_PARAMETER','Supply only the documented parameters; unsupported date/frequency/unit fields are never ignored');
+}
 
 function checkedDate(text) {
   const date = new Date(`${text}T00:00:00Z`);
@@ -30,23 +33,27 @@ function provenance(source) {
 }
 
 export function parseFxInput(p) {
+  knownInput(p,['base','from','quote','to','amount','date','question','query','q']);
   const q = queryText(p);
   const baseInput = inputAlias(p, ['base', 'from'], v => String(v).trim().toUpperCase());
   const quoteInput = inputAlias(p, ['quote', 'to'], v => String(v).trim().toUpperCase());
   if (q.length > 4096) throw new ServiceError('INPUT_TOO_LONG', 'Question is limited to 4096 characters');
-  if (/\b(?:intraday|tick|bid|ask|tradeable|tradable|executable|real[- ]time|spot)\b/i.test(q)) throw new ServiceError('UNSUPPORTED_FREQUENCY', 'This service provides daily reference rates, not executable or intraday quotes');
-  if (p.date || /\b\d{4}-\d{2}-\d{2}\b/.test(q)) throw new ServiceError('UNSUPPORTED_DATE', 'FX currently supports the latest published reference date only');
+  if (/\b(?:intraday|tick|bid|ask|spread|institutional|mid[- ]market|tradeable|tradable|executable|real[- ]time|spot)\b/i.test(q)) throw new ServiceError('UNSUPPORTED_FREQUENCY', 'This service provides daily reference rates, not institutional live, executable or intraday quotes/spreads');
+  if (p.date!==undefined || /\b\d{4}-\d{2}-\d{2}\b/.test(q)) throw new ServiceError('UNSUPPORTED_DATE', 'FX currently supports the latest published reference date only');
   const pair = /\b([A-Z]{3})\s*(?:\/|to|in|into|against)\s*([A-Z]{3})\b/i.exec(q);
   const per = /\b([A-Z]{3})\s+per\s+([A-Z]{3})\b/i.exec(q);
   const amountPair = /\b(\d+(?:\.\d+)?)\s+([A-Z]{3})\s+(?:to|in|into)\s+([A-Z]{3})\b/i.exec(q);
   const mentionedPairs = [...q.matchAll(/\b([A-Z]{3})\s*(?:\/|to|in|into|against)\s*([A-Z]{3})\b/gi)].map(m => `${m[1].toUpperCase()}/${m[2].toUpperCase()}`);
-  if (!(baseInput && quoteInput) && new Set(mentionedPairs).size > 1) throw new ServiceError('AMBIGUOUS_PAIR', 'One currency pair per request; supply explicit base and quote');
+  for(const m of q.matchAll(/\b([A-Z]{3})\s+per\s+([A-Z]{3})\b/gi))mentionedPairs.push(`${m[2].toUpperCase()}/${m[1].toUpperCase()}`);
+  if (new Set(mentionedPairs).size > 1) throw new ServiceError('AMBIGUOUS_PAIR', 'One currency pair per request; an original multi-pair question cannot be silently narrowed');
+  if(mentionedPairs.length){const [askedBase,askedQuote]=mentionedPairs[0].split('/');if(baseInput&&baseInput!==askedBase||quoteInput&&quoteInput!==askedQuote)throw new ServiceError('CONFLICTING_PARAMETER','Structured currency fields conflict with the original question');}
   const base = String(baseInput ?? amountPair?.[2] ?? pair?.[1] ?? per?.[2] ?? '').toUpperCase();
   const quote = String(quoteInput ?? amountPair?.[3] ?? pair?.[2] ?? per?.[1] ?? '').toUpperCase();
-  if (p.amount == null && /-\s*\d/.test(q)) throw new ServiceError('INVALID_AMOUNT', 'Negative conversion amounts are not supported');
+  if (/-\s*\d/.test(q)) throw new ServiceError('INVALID_AMOUNT', 'Negative conversion amounts are not supported');
   if (!/^[A-Z]{3}$/.test(base) || !/^[A-Z]{3}$/.test(quote)) throw new ServiceError('AMBIGUOUS_PAIR', 'Supply explicit three-letter base and quote currencies');
   const amount = canonicalDecimal(p.amount ?? amountPair?.[1] ?? '1');
   const a = decimal(amount);
+  if(p.amount!=null&&amountPair){const asked=decimal(amountPair[1]);if(a.n*asked.d!==asked.n*a.d)throw new ServiceError('CONFLICTING_PARAMETER','Structured amount conflicts with the original question');}
   if (a.n < 0n || a.n > 1_000_000_000_000n * a.d) throw new ServiceError('INVALID_AMOUNT', 'Amount must be between zero and one trillion');
   return { base, quote, amount };
 }
@@ -67,6 +74,7 @@ export function parseEcb(text) {
 }
 
 export function parseMacroInput(p, now = new Date()) {
+  knownInput(p,['country','indicator','year','question','query','q']);
   const q = queryText(p);
   if (q.length > 4096) throw new ServiceError('INPUT_TOO_LONG', 'Question is limited to 4096 characters');
   if (/\b(?:monthly|quarterly|forecast|predict|projection|current month|this month)\b/i.test(q)) throw new ServiceError('UNSUPPORTED_FREQUENCY', 'Only published annual observations are supported');
@@ -75,20 +83,24 @@ export function parseMacroInput(p, now = new Date()) {
   const matchedCountries = Object.entries(COUNTRIES).filter(([name]) => new RegExp(`\\b${name}\\b`, 'i').test(q)).map(([, code]) => code);
   const isoAliases = { USA: 'US', IND: 'IN', DEU: 'DE', GBR: 'GB', JPN: 'JP', CHN: 'CN', FRA: 'FR', CAN: 'CA', AUS: 'AU', BRA: 'BR' };
   for (const m of q.matchAll(/\b(US|USA|IN|IND|DE|DEU|GB|GBR|JP|JPN|CN|CHN|FR|FRA|CA|CAN|AU|AUS|BR|BRA)\b/g)) matchedCountries.push(isoAliases[m[1]] ?? m[1]);
+  const uniqueCountries=[...new Set(matchedCountries)];
+  if(uniqueCountries.length>1)throw new ServiceError('AMBIGUOUS_COUNTRY','One country per request; an original multi-country question cannot be silently narrowed');
   const country = String(p.country ?? (new Set(matchedCountries).size === 1 ? matchedCountries[0] : '')).trim().toUpperCase();
   if (!/^[A-Z]{2,3}$/.test(country)) throw new ServiceError('AMBIGUOUS_COUNTRY', 'Supply one ISO two- or three-letter country code');
+  if(p.country!=null&&uniqueCountries.length===1&&(isoAliases[country]??country)!==uniqueCountries[0])throw new ServiceError('CONFLICTING_PARAMETER','Structured country conflicts with the original question');
   let indicator = p.indicator == null ? undefined : String(p.indicator).trim().toLowerCase();
-  if (!indicator) {
     const candidates = [];
     if (/\b(?:inflation|CPI)\b/i.test(q)) candidates.push('inflation');
     if (/\b(?:unemployment|UNEMP)\b/i.test(q)) candidates.push('unemployment');
     if (/\bpopulation\b/i.test(q)) candidates.push('population');
     if (/\bGDP\b/i.test(q)) candidates.push(/\bgrowth\b/i.test(q) ? 'gdp_growth' : 'gdp');
-    if (candidates.length === 1) indicator = candidates[0];
-  }
+    if(candidates.length>1)throw new ServiceError('UNSUPPORTED_INDICATOR','One indicator per request; an original multi-indicator question cannot be silently narrowed');
+    if(indicator&&candidates.length===1&&indicator!==candidates[0])throw new ServiceError('CONFLICTING_PARAMETER','Structured indicator conflicts with the original question');
+    if (!indicator && candidates.length === 1) indicator = candidates[0];
   if (!Object.hasOwn(INDICATORS, indicator ?? '')) throw new ServiceError('UNSUPPORTED_INDICATOR', 'Choose gdp, gdp_growth, inflation, unemployment or population');
   const years = [...q.matchAll(/(?<![A-Za-z0-9-])(19\d{2}|20\d{2})(?![A-Za-z0-9-])/g)].map(m => m[1]);
-  if (!p.year && new Set(years).size > 1) throw new ServiceError('AMBIGUOUS_YEAR', 'Supply one observation year');
+  if (new Set(years).size > 1) throw new ServiceError('AMBIGUOUS_YEAR', 'Supply one observation year');
+  if(p.year!=null&&years.length&&String(p.year)!==years[0])throw new ServiceError('CONFLICTING_PARAMETER','Structured year conflicts with the original question');
   const year = String(p.year ?? years[0] ?? 'latest');
   if (year !== 'latest' && (!/^\d{4}$/.test(year) || Number(year) < 1960 || Number(year) > now.getUTCFullYear())) throw new ServiceError('INVALID_YEAR', 'Year must be 1960 through the current year, or latest');
   return { country, indicator, year };

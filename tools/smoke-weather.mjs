@@ -9,7 +9,7 @@ async function check(id,path,status,verify,options={}){const start=performance.n
   catch(e){rows.push({id,pass:false,status:actual,error_code,error:e.message.slice(0,300)});}
 }
 for(const asset of [...p.preserved,p.output,...(p.candidate_outputs??[])])await check('bytes-'+asset.file,'/'+asset.file,200,(_,b)=>assert.equal('0x'+createHash('sha256').update(b).digest('hex'),asset.sha256));
-await check('health-ten','/health',200,a=>{assert(['0.5.0','0.5.1'].includes(a.version));assert.equal(a.supported_intents.length,10);assert.match(a.weather_coverage,/US/);});
+await check('health-ten','/health',200,a=>{assert(['0.5.0','0.5.1','0.5.2'].includes(a.version));assert.equal(a.supported_intents.length,10);assert.match(a.weather_coverage,/US/);});
 for(const path of ['/research/','/reports/weather/','/tools/upgrade-weather-miner.mjs','/.env','/__weather-cache'])await check('private-'+path,path,404);
 for(const kind of ['forecast','current','alerts']){
   await check('missing-'+kind,'/weather/'+kind,422,a=>assert.equal(Object.hasOwn(a,'score_value'),false));

@@ -46,6 +46,40 @@ node tools/refine-routing-miner.mjs --status
 node tools/check-network-quality.mjs
 ```
 
+## Numeric context correctness and source caching
+
+Runtime 0.5.2 refuses structured currency pairs, conversion amounts, countries,
+indicators and years that contradict a recognized original question. Explicit
+hints cannot silently narrow recognized multi-pair, multi-country, multi-indicator
+or multi-year questions. Equivalent decimal amounts remain accepted. This is a
+bounded parser for the supported fields and recognized language, not general
+natural-language understanding.
+
+Numeric endpoints refuse unknown parameters and unsupported date/frequency fields
+rather than ignore them. Institutional live rates, mid-market quotes and spreads
+are refused because ECB daily reference data cannot establish those answers.
+These honest refusals do not expand FX_NOW coverage or guarantee a higher score.
+
+The Worker can reuse validated ECB/World Bank source bytes through the data
+center's Cache API across fresh clients and isolate restarts. Cache entries retain
+the original fetch time, URL and SHA-256; readers check expiry, requested TTL,
+body size, hash and source semantics. Upstream no-store/private/no-cache and
+max-age/Age are respected. Cache errors fall through to the source, and missing
+or invalid data is never cached as an answer. Cache retention is opportunistic;
+it does not guarantee availability or cross-region sharing.
+
+Reproduce the context HTTP checks against local workerd or the public origin:
+
+```powershell
+node tools/smoke-numeric-context.mjs
+node tools/smoke-numeric-context.mjs https://referenceforge.0xsaroj001.workers.dev
+```
+
+The regression suite tests original-question conflicts, zero/equivalent amounts,
+no source I/O for refused input, corrupt/stale/mismatched persistent cache entries,
+semantic revalidation and cache infrastructure failure. These checks establish
+specific correctness safeguards, not a repaired platform quota or a new network score.
+
 ## Network proof still needed
 
 One unpaid direct Engine probe returned HTTP 402, confirming that the live payment gate is enforced. No payment header, wallet signature, retry or settlement was sent. This is not a successful inference, ranked-routing proof or independent consumption. The supported direct Engine path requires x402, and even malformed requests encounter payment before schema validation. A browser or consumer test needs a reviewed payment flow before we claim actual network inference.

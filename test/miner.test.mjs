@@ -28,10 +28,10 @@ test('FX conversion uses correct cross-rate orientation and decimal arithmetic',
 test('whole question aliases, per orientation and structured input precedence', () => {
   assert.deepEqual(parseFxInput({ question: 'convert 20 USD to INR' }), { base: 'USD', quote: 'INR', amount: '20' });
   assert.deepEqual(parseFxInput({ q: 'USD per EUR please' }), { base: 'EUR', quote: 'USD', amount: '1' });
-  assert.equal(parseFxInput({ question: 'USD to INR', base: 'EUR' }).base, 'EUR');
+  assert.throws(()=>parseFxInput({ question: 'USD to INR', base: 'EUR' }),{code:'CONFLICTING_PARAMETER'});
   assert.throws(() => parseFxInput({ q: 'Convert -5 USD to INR' }), { code: 'INVALID_AMOUNT' });
   assert.throws(() => parseFxInput({ q: 'USD to INR and EUR to GBP' }), { code: 'AMBIGUOUS_PAIR' });
-  assert.equal(parseFxInput({ q: 'USD to INR and EUR to GBP', base: 'USD', quote: 'INR', amount: 0 }).amount, '0');
+  assert.throws(()=>parseFxInput({ q: 'USD to INR and EUR to GBP', base: 'USD', quote: 'INR', amount: 0 }),{code:'AMBIGUOUS_PAIR'});
 });
 
 test('unsupported and ambiguous questions cannot silently become an answer', async () => {

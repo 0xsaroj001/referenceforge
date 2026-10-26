@@ -1,11 +1,18 @@
 import { createHash } from 'node:crypto';
 import { ServiceError } from './errors.mjs';
 
-export function createSources({ fetchImpl = fetch, now = () => new Date(), timeoutMs = 8000, maxCacheEntries = 128, maxAttempts = 2, retryDelayMs = 125, onError = () => {}, cache = new Map() } = {}) {
+export function createSources({ fetchImpl = fetch, now = () => new Date(), timeoutMs = 8000, maxCacheEntries = 128, maxAttempts = 2, retryDelayMs = 125, onError = () => {}, cache = new Map(), cacheApi } = {}) {
   // An isolate may share resolved text/cache metadata, never request-owned promises.
   const pending = new Map();
-  const counts = { attempts: 0, retries: 0, cache_hits: 0, coalesced: 0, loads: 0, failures: 0, invalid_payloads: 0 };
+  const counts = { attempts: 0, retries: 0, cache_hits: 0, persistent_cache_hits:0, coalesced: 0, loads: 0, failures: 0, invalid_payloads: 0 };
   let active = 0;
+  const digest=text=>createHash('sha256').update(text).digest('hex');
+  const remember=(url,entry)=>{if(cache.size>=maxCacheEntries&&!cache.has(url))cache.delete(cache.keys().next().value);cache.set(url,entry);};
+  async function boundedCacheText(response){
+    if(!response.body)throw new Error('missing cache body');const reader=response.body.getReader(),chunks=[];let size=0;
+    try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>1100000)throw new Error('oversized cache body');chunks.push(Buffer.from(value));}}
+    finally{await reader.cancel().catch(()=>{});reader.releaseLock();}return Buffer.concat(chunks).toString('utf8');
+  }
   return {
     stats() { return { ...counts, active, cached_entries: cache.size }; },
     async get(url, ttlMs, { validate } = {}) {
@@ -17,6 +24,8 @@ export function createSources({ fetchImpl = fetch, now = () => new Date(), timeo
         if (!validate) return;
         try { await validate(text); } catch (error) { counts.invalid_payloads++; throw error; }
       };
+      // Cache only resolved source text, not request-owned I/O or final answers.
+      const persistentKey=cacheApi?new Request('https://referenceforge.0xsaroj001.workers.dev/__numeric-source-cache/v1?source='+encodeURIComponent(url)):null;
       const existing = cache.get(url);
       if (existing && existing.expires > now().getTime()) {
         try { await validatePayload(existing.value.text); counts.cache_hits++; return { ...existing.value, cache_hit: true }; }
@@ -31,6 +40,17 @@ export function createSources({ fetchImpl = fetch, now = () => new Date(), timeo
       const load = (async () => {
         active++; counts.loads++;
         try {
+          if(cacheApi&&ttlMs>0){
+            try{
+              const r=await cacheApi.match(persistentKey);
+              if(r?.ok){
+                const entry=JSON.parse(await boundedCacheText(r)),v=entry?.value,t=now().getTime(),fetched=Date.parse(v?.fetched_at);
+                if(Number.isFinite(entry?.expires)&&entry.expires>t&&entry.expires<=t+ttlMs&&Number.isFinite(fetched)&&fetched<=t&&entry.expires<=fetched+ttlMs&&v.source_url===url&&typeof v.text==='string'&&Buffer.byteLength(v.text)<=1000000&&digest(v.text)===v.payload_sha256){
+                  await validatePayload(v.text);remember(url,entry);counts.cache_hits++;counts.persistent_cache_hits++;return {...v,cache_hit:true};
+                }
+              }
+            }catch{} // A cache failure or invalid entry must not hide the source path.
+          }
           const deadline = performance.now() + timeoutMs;
           let response, lastError;
           for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -63,8 +83,11 @@ export function createSources({ fetchImpl = fetch, now = () => new Date(), timeo
           const bytes = Buffer.concat(chunks);
           const value = { text: bytes.toString('utf8'), source_url: url, fetched_at: now().toISOString(), payload_sha256: createHash('sha256').update(bytes).digest('hex'), cache_hit: false };
           await validatePayload(value.text);
-          if (cache.size >= maxCacheEntries) cache.delete(cache.keys().next().value);
-          cache.set(url, { expires: now().getTime() + ttlMs, value });
+          const upstream=/\bmax-age=(\d+)/i.exec(response.headers.get('cache-control')??''),age=Number(response.headers.get('age')??0);
+          const seconds=!/\b(?:no-store|private|no-cache)\b/i.test(response.headers.get('cache-control')??'')&&Number.isFinite(age)&&age>=0?Math.max(0,Math.min(ttlMs/1000,upstream?Number(upstream[1])-age:Infinity)):0;
+          const entry={expires:Date.parse(value.fetched_at)+seconds*1000,value};
+          if(seconds>0)remember(url,entry);
+          if(cacheApi&&seconds>=1)try{const serialized=JSON.stringify(entry);if(Buffer.byteLength(serialized)<=1100000)await cacheApi.put(persistentKey,new Response(serialized,{headers:{'content-type':'application/json','cache-control':'public, max-age='+Math.floor(seconds)}}));}catch{}
           return value;
         } catch (error) {
           counts.failures++;

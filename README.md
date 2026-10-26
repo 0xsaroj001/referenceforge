@@ -6,7 +6,7 @@ The last verified on-chain registration is still 4844 with four intents; 4838 an
 
 The earlier separate Onchain service remains hosted during migration. Its implementation and scope are documented in [ONCHAIN_MINER.md](docs/ONCHAIN_MINER.md). Legacy public YAML and WASM bytes remain available at their original URLs.
 
-The original ReferenceForge 0.2.1 implementation serves numeric references from the European Central Bank and World Bank. The repository also includes its original Rust WASM comparator, structured-context evaluation harness and separate service packages. The deployed weather Worker reports version 0.5.1.
+The original ReferenceForge 0.2.1 implementation serves numeric references from the European Central Bank and World Bank. The repository also includes its original Rust WASM comparator, structured-context evaluation harness and separate service packages. The deployed weather Worker reports version 0.5.2.
 
 The original numeric deployment's source and artifact checks passed on 24 October 2026. Local correctness and deployment do not establish scoring, rewards or a competitive ranking advantage. The [original upload handoff](UPLOAD_TO_TELEGRAPH.md) is historical; use the weather guide for the current update.
 

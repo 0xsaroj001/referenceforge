@@ -12,7 +12,7 @@ export const EXPANDED_INTENTS = Object.freeze([...UNIFIED_INTENTS, 'CURRENCY_EXC
 export const EXPANDED_PATHS = Object.freeze([...UNIFIED_PATHS, '/convert', '/tx', '/wallet-balance']);
 const fail = (code, message, status = 400) => { throw new ServiceError(code, message, status); };
 export function unifiedHealth(expanded = false, weather = false) {
-  return { status: 'ok', service: 'ReferenceForge', version: weather ? '0.5.1' : expanded ? '0.4.0' : '0.3.0', supported_intents: weather ? [...EXPANDED_INTENTS,...WEATHER_INTENTS] : expanded ? EXPANDED_INTENTS : UNIFIED_INTENTS,
+  return { status: 'ok', service: 'ReferenceForge', version: weather ? '0.5.2' : expanded ? '0.4.0' : '0.3.0', supported_intents: weather ? [...EXPANDED_INTENTS,...WEATHER_INTENTS] : expanded ? EXPANDED_INTENTS : UNIFIED_INTENTS,
     endpoints: weather ? [...EXPANDED_PATHS,...WEATHER_PATHS,...Object.keys(METRIC_ROUTES)] : expanded ? EXPANDED_PATHS : UNIFIED_PATHS, ...(weather?{routing_contract_version:'explicit_metrics_v1',weather_coverage:'NWS-covered US land points; forecasts 1-48 hours, observations <=90 minutes within 50 km, issued alerts for next 24 hours'}:{}), supported_networks: ['base', 'base-sepolia'], payment_flow_verified: false,
     registration_status: 'check_registry_and_node', scope: 'ECB daily references, World Bank annual observations, Base native/ERC20 transfers and block-pinned metrics' };
 }
