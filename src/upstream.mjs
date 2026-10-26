@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { ServiceError } from './errors.mjs';
 
-export function createSources({ fetchImpl = fetch, now = () => new Date(), timeoutMs = 8000, maxCacheEntries = 128, maxAttempts = 2, retryDelayMs = 125, onError = () => {} } = {}) {
-  const cache = new Map(), pending = new Map();
+export function createSources({ fetchImpl = fetch, now = () => new Date(), timeoutMs = 8000, maxCacheEntries = 128, maxAttempts = 2, retryDelayMs = 125, onError = () => {}, cache = new Map() } = {}) {
+  // An isolate may share resolved text/cache metadata, never request-owned promises.
+  const pending = new Map();
   const counts = { attempts: 0, retries: 0, cache_hits: 0, coalesced: 0, loads: 0, failures: 0, invalid_payloads: 0 };
   let active = 0;
   return {

@@ -1,0 +1,6 @@
+import {weatherDescriptor} from './render-weather-miner.mjs';
+import {METRIC_ROUTES} from '../src/onchain/routes.mjs';
+const descriptions={chain:'base or base-sepolia only. Do not choose this Provider for another chain.',address:'Required exact 20-byte wallet/account hex address (0x plus 40 hex characters). ENS names are unsupported; never substitute our fee wallet or invent an address.',token:'Required exact ERC-20 token contract hex address; not a ticker symbol.',tx_hash:'Required exact transaction hash (0x plus 64 hex characters); never pass a wallet address.',block:'safe (default), finalized or exact block number. No latest/pending for state reads.'};
+export function routingDescriptor(){const old=weatherDescriptor();return {...old,
+  description:old.description+' ONCHAIN_METRIC_VERIFY has separate fixed-metric endpoint contracts so balance addresses and transaction hashes are unambiguously required.',
+  endpoints:old.endpoints.flatMap(e=>e.path!=='/onchain-metric'?[e]:Object.entries(METRIC_ROUTES).map(([path,r])=>({path,external_path:path,method:'GET',intents:['ONCHAIN_METRIC_VERIFY'],description:r.description,params:{query:{required:r.required.map(name=>({name,type:'string',intents:['*'],description:descriptions[name]})),optional:r.optional.map(name=>({name,type:'string',intents:['*'],description:descriptions[name]}))}}})))};}

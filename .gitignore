@@ -15,6 +15,10 @@ __pycache__/
 .env.*
 !.env.example
 /deploy/public/
+/deploy/onchain-public/
+/deploy/unified-public/
+/deploy/expanded-public/
+/deploy/weather-public/
 /deploy/bundle/
 /.wrangler/
 **/.wrangler/

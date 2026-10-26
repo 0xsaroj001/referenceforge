@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {readFile,readdir,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const map=JSON.parse(await readFile('dist/weather-worker/weather-worker.js.map','utf8')),code=await readFile('dist/weather-worker/weather-worker.js','utf8');
+const allowed=['src/miner.mjs','src/errors.mjs','src/decimal.mjs','src/upstream.mjs','src/responses.mjs','src/onchain/routes.mjs','src/onchain/input.mjs','src/onchain/rpc.mjs','src/onchain/verify.mjs','src/unified.mjs','src/weather.mjs','deploy/unified-worker.mjs','deploy/weather-worker.mjs'];
+assert.equal(map.sources.length,allowed.length);assert(map.sources.every(p=>allowed.some(a=>p.replaceAll('\\','/').endsWith(a))));
+assert(!/local-competitor-audit|PREVIOUS_WINNER_AUDIT|ASYMMETRIC_STRATEGY|upgrade-weather-miner|PRIVATE_KEY|alch_[A-Za-z0-9_-]{16,}/.test(code));
+const p=JSON.parse(await readFile('reports/weather/prepared.json','utf8')),assets=[...p.preserved,p.output,...(p.candidate_outputs??[])];assert.deepEqual((await readdir('deploy/weather-public')).sort(),assets.map(x=>x.file).sort());
+for(const x of assets)assert.equal('0x'+createHash('sha256').update(await readFile('deploy/weather-public/'+x.file)).digest('hex'),x.sha256);
+const result={checked_at:new Date().toISOString(),modules:map.sources.length,assets:assets.map(x=>({file:x.file,sha256:x.sha256})),bundle_bytes:Buffer.byteLength(code),source_boundary_passed:true,signing_code_absent:true};
+await writeFile('reports/weather/bundle-audit.json',JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result,null,2));

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+const root=new URL('../',import.meta.url),reportDir=new URL('reports/intent-expansion/',root);
+const map=JSON.parse(await readFile(new URL('dist/expanded-worker/expanded-worker.js.map',root),'utf8'));
+const code=await readFile(new URL('dist/expanded-worker/expanded-worker.js',root),'utf8');
+const allowed=['src/miner.mjs','src/errors.mjs','src/decimal.mjs','src/upstream.mjs','src/responses.mjs','src/onchain/routes.mjs','src/onchain/input.mjs','src/onchain/rpc.mjs','src/onchain/verify.mjs','src/unified.mjs','src/weather.mjs','deploy/unified-worker.mjs','deploy/expanded-worker.mjs'];
+assert.equal(map.sources.length,allowed.length);assert(map.sources.every(p=>allowed.some(a=>p.replaceAll('\\','/').endsWith(a))));
+assert(!/local-competitor-audit|PREVIOUS_WINNER_AUDIT|ASYMMETRIC_STRATEGY|expand-miner|PRIVATE_KEY|gh[pousr]_[A-Za-z0-9]{20}/.test(code));
+const prepared=JSON.parse(await readFile(new URL('prepared.json',reportDir),'utf8')),assets=(await readdir(new URL('deploy/expanded-public/',root))).sort();
+const rows=[...prepared.preserved,...prepared.outputs.map(x=>({file:x.file,sha256:x.hash}))];assert.deepEqual(assets,rows.map(x=>x.file).sort());
+for(const x of rows)assert.equal('0x'+createHash('sha256').update(await readFile(new URL('deploy/expanded-public/'+x.file,root))).digest('hex'),x.sha256);
+const result={checked_at:new Date().toISOString(),sources:map.sources,assets,bytes:Buffer.byteLength(code),source_boundary_passed:true,signing_code_absent:true};
+await mkdir(reportDir,{recursive:true});await writeFile(new URL('bundle-audit.json',reportDir),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result,null,2));
