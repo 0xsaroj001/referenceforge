@@ -41,7 +41,7 @@ export function windRange(value){
 }
 function quantity(q,kind){
   if(q?.value===null||q?.value===undefined)return null;
-  insist(finite(q.value)&&!['Z','X','Q'].includes(q.qualityControl),'INVALID_SOURCE','Observation contains invalid or rejected-quality data.');
+  insist(finite(q.value)&&(q.qualityControl===undefined||['C','S','V','G'].includes(q.qualityControl)),'INVALID_SOURCE','Observation contains invalid or rejected-quality data.');
   const units={temperature:{'wmoUnit:degC':v=>v,'wmoUnit:degF':v=>(v-32)*5/9},wind:{'wmoUnit:km_h-1':v=>v,'wmoUnit:m_s-1':v=>v*3.6,'wmoUnit:mi_h-1':v=>v*1.609344},humidity:{'wmoUnit:percent':v=>v}};
   const convert=units[kind][q.unitCode];insist(convert,'INVALID_SOURCE','Unsupported observation unit.');
   const v=convert(q.value);insist(kind==='temperature'?finite(v,-100,70):kind==='humidity'?finite(v,0,100):finite(v,0,500),'INVALID_SOURCE','Observation is outside physical bounds.');return round(v);
@@ -105,18 +105,32 @@ export function createWeather({fetchImpl=fetch,now=()=>new Date(),cache=new Map(
       const stations=await get(url,3600,d=>insist(d?.type==='FeatureCollection'&&Array.isArray(d.features),'INVALID_SOURCE','Invalid station catalogue.'));
       const near=stations.features.map(s=>({s,km:distance(p.lat,p.lon,s.geometry)})).filter(x=>x.km<=50).sort((a,b)=>a.km-b.km).slice(0,3);
       insist(near.length>0,'NO_NEARBY_STATION','No supported station within 50 km.');let chosen;
+      const usable=(o,metric)=>{const age=(started-Date.parse(o.timestamp))/1000;if(age>5400||age< -300||o.temperature?.value===null)return null;
+        const values={},unavailable=[];
+        for(const [field,key,type]of [['temperature','temperature','temperature'],['wind_speed','windSpeed','wind'],['humidity','relativeHumidity','humidity']]){try{values[field]=quantity(o[key],type);}catch(e){if(e.code!=='INVALID_SOURCE')throw e;values[field]=null;unavailable.push(field);}}
+        if(values.temperature===null||metric!=='summary'&&values[metric]===null)return null;
+        return {values,unavailable,age_seconds:Math.max(0,Math.round(age))};};
+      const historyCandidates=[];
       for(const candidate of near){
         const id=candidate.s.properties?.stationIdentifier;insist(typeof id==='string'&&/^[A-Z0-9]{3,8}$/.test(id),'INVALID_SOURCE','Invalid station identifier.');
         const obs=await get(ORIGIN+`/stations/${id}/observations/latest`,60,d=>insist(d?.type==='Feature'&&d.properties&&stamp(d.properties.timestamp)&&d.properties.station===ORIGIN+'/stations/'+id,'INVALID_SOURCE','Invalid observation identity/timestamp.'));
-        const o=obs.properties,age=(started-Date.parse(o.timestamp))/1000;if(age>5400||age< -300||o.temperature?.value===null)continue;
-        const values={temperature:quantity(o.temperature,'temperature'),wind_speed:quantity(o.windSpeed,'wind'),humidity:quantity(o.relativeHumidity,'humidity')};
-        if(values.temperature===null||p.metric!=='summary'&&values[p.metric]===null)continue;
-        chosen={observation:o,values,station:{id,name:candidate.s.properties.name,distance_km:round(candidate.km),coordinates:candidate.s.geometry.coordinates},age_seconds:Math.max(0,Math.round(age))};break;
+        const o=obs.properties,found=usable(o,p.metric),station={id,name:candidate.s.properties.name,distance_km:round(candidate.km),coordinates:candidate.s.geometry.coordinates};
+        if(!found){historyCandidates.push(station);continue;}
+        chosen={observation:o,...found,station,selection:'latest_station_report'};break;
       }
-      insist(chosen,'NO_FRESH_OBSERVATION','No complete requested observation <=90 minutes old among the nearest three stations within 50 km.');
-      const {observation:o,values,station,age_seconds}=chosen;
+      // At most one bounded history page after trying the nearest three stations.
+      // A blank newest METAR must not hide a still-fresh valid same-station report.
+      if(!chosen&&historyCandidates.length){const station=historyCandidates[0],query=new URLSearchParams({start:new Date(Math.floor((started-5400000)/60000)*60000).toISOString(),end:new Date(Math.ceil(started/60000)*60000).toISOString(),limit:'32'});
+        const history=await get(ORIGIN+`/stations/${station.id}/observations?`+query,60,d=>{
+          insist(d?.type==='FeatureCollection'&&Array.isArray(d.features)&&d.features.length<=32,'INVALID_SOURCE','Invalid bounded observation history.');let previous=Infinity;const seen=new Map();
+          for(const f of d.features){const o=f?.properties,t=Date.parse(o?.timestamp);insist(f?.type==='Feature'&&o?.station===ORIGIN+'/stations/'+station.id&&stamp(o.timestamp)&&t<=previous,'INVALID_SOURCE','Observation history has an invalid station, timestamp or ordering.');const values=JSON.stringify([o.temperature,o.windSpeed,o.relativeHumidity]);insist(!seen.has(t)||seen.get(t)===values,'INVALID_SOURCE','Observation history has conflicting duplicate measurements.');seen.set(t,values);previous=t;}
+        });
+        for(const f of history.features){const found=usable(f.properties,p.metric);if(found){chosen={observation:f.properties,...found,station,selection:'recent_valid_same_station_report',history_records_examined:history.features.length};break;}}
+      }
+      insist(chosen,'NO_FRESH_OBSERVATION','No usable requested observation <=90 minutes old within 50 km in the checked latest reports and bounded same-station history.');
+      const {observation:o,values,station,age_seconds,unavailable}=chosen;
       const summary=`NWS station ${station.id}, ${station.distance_km} km from ${p.lat},${p.lon}, observed ${o.timestamp}: ${values.temperature} C; wind ${values.wind_speed===null?'unavailable':values.wind_speed+' km/h'}; humidity ${values.humidity===null?'unavailable':values.humidity+'%'}. ${o.textDescription??''} Station observation, not a measurement at the exact requested point.`;
-      body={intent:'WEATHER_CHECK',data_kind:'station_observation',observed_at:o.timestamp,age_seconds,station,metrics:values,units:{temperature:'C',wind_speed:'km/h',humidity:'percent'},conditions:o.textDescription??null,score_value:p.metric==='summary'?summary:String(values[p.metric]),summary};
+      body={intent:'WEATHER_CHECK',data_kind:'station_observation',observed_at:o.timestamp,age_seconds,station,metrics:values,observation_selection:chosen.selection,...(chosen.history_records_examined!==undefined?{history_records_examined:chosen.history_records_examined,history_lookback_minutes:90}:{}),unavailable_measurements:unavailable,observation_quality:{temperature:o.temperature?.qualityControl??'not_supplied',wind_speed:o.windSpeed?.qualityControl??'not_supplied',humidity:o.relativeHumidity?.qualityControl??'not_supplied'},units:{temperature:'C',wind_speed:'km/h',humidity:'percent'},conditions:o.textDescription??null,score_value:p.metric==='summary'?summary:String(values[p.metric]),summary};
     }else{
       const d=await get(ORIGIN+`/alerts?active=true&point=${p.lat},${p.lon}&status=actual`,30,d=>insist(d?.type==='FeatureCollection'&&Array.isArray(d.features)&&d.features.length<500&&!d.pagination?.next,'INCOMPLETE_ALERTS','NWS alert response is incomplete or paginated.'));
       const hazard=/tornado|thunderstorm|hurricane|tropical|storm|wind|blizzard|snow|ice|freez|flood|gale|squall|tsunami/i,alerts=[];const seen=new Set();

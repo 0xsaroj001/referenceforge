@@ -2,11 +2,11 @@ import { ServiceError } from '../errors.mjs';
 
 export const NETWORKS = Object.freeze({
   base: { chainId: 8453n, name: 'Base', explorer: 'https://basescan.org', providers: [
-    { operator: 'dRPC public RPC', url: 'https://base.drpc.org', maxBatchItems: 3 },
+    { operator: 'Base official public RPC', url: 'https://mainnet.base.org', maxBatchItems: 3 },
     { operator: 'Allnodes PublicNode', url: 'https://base-rpc.publicnode.com' }
   ] },
   'base-sepolia': { chainId: 84532n, name: 'Base Sepolia', explorer: 'https://sepolia.basescan.org', providers: [
-    { operator: 'dRPC public RPC', url: 'https://base-sepolia.drpc.org', maxBatchItems: 3 },
+    { operator: 'Base official public RPC', url: 'https://sepolia.base.org', maxBatchItems: 3 },
     { operator: 'Allnodes PublicNode', url: 'https://base-sepolia-rpc.publicnode.com' }
   ] }
 });
@@ -32,7 +32,8 @@ export function uint(value, field = 'amount') {
   return value;
 }
 function network(value) {
-  const name = ({ '8453': 'base', '84532': 'base-sepolia' })[String(value)] ?? value;
+  const label=typeof value==='string'?value.trim().toLowerCase().replace(/[ _]+/g,'-'):String(value);
+  const name = ({ '8453': 'base', '84532': 'base-sepolia', '0x2105':'base', '0x14a34':'base-sepolia', 'base-mainnet':'base' })[label] ?? label;
   if (!Object.hasOwn(NETWORKS, name ?? '')) fail('UNSUPPORTED_CHAIN', 'Supply chain=base or chain=base-sepolia; no other networks are supported');
   return name;
 }

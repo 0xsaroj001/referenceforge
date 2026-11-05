@@ -1,55 +1,14 @@
-# ReferenceForge demo
+# Provider demo plan
 
-## Offline service checks
+Prepare a 2–5 minute recording or accessible equivalent for Miners / Providers. No demo or submission is claimed complete.
 
-```powershell
-npm ci
-npm test
-npm run bench:miner
-npm run bench:input-cache
-```
+1. Show the user problem and the mission-specific workflow we support.
+2. Identify the exact concrete V2 Intent and its request/response version.
+3. Run a realistic new input, show the source-backed result and its units, chain/block or timestamp.
+4. Show one meaningful failure: wrong chain, unavailable observation, expired data or inconsistent request.
+5. Show current platform evidence only when verified: registration, output field statuses, serving request/accounting and ranked-route evidence.
+6. Show latency, known costs, coverage limits, source/reproduction link and how a reviewer can try another input.
 
-Expected: 37 Node tests, including ten terminal-registration safeguards, 35 authored miner cases, 14 input/cache cases, and 200 successful warm loopback requests. Historical comparison fields are null in a fresh checkout because local archives are not included. Timing varies by machine and run.
+Do not show an old chain record as V2 admission, an issued-alert count as risk_score, or a local/synthetic fixture as an independent app. Disclose existing code reuse and original contribution. Sensitive reports, competitor research, credentials and private evaluation material stay out of public recordings. Showcase and buyer-introduction permissions are owner choices.
 
-## Comparator checks
-
-Requires Rust with the WASM target and Go 1.26.
-
-```powershell
-rustup target add wasm32-unknown-unknown
-npm run test:rust
-npm run build:wasm
-npm run test:wasm
-npm run test:wazero
-npm run test:official
-npm run bench:wasm
-```
-
-Expected: six Rust tests; 2,400 vectors in Node and wazero; 2,370 matches against the pinned official source plus 30 overflow-domain exceptions. The official check may download the reviewed source and license if its local cache is empty.
-
-## Live source demonstration
-
-```powershell
-npm start
-```
-
-In another PowerShell terminal:
-
-```powershell
-Invoke-RestMethod 'http://127.0.0.1:8787/health'
-Invoke-RestMethod 'http://127.0.0.1:8787/fx?base=USD&quote=INR&amount=20'
-Invoke-RestMethod 'http://127.0.0.1:8787/macro?country=US&indicator=unemployment&year=2019'
-```
-
-Inspect the observation period, units, numeric string and source fields. A request for spot FX returns a refusal rather than a daily value.
-
-Optional live comparison and context demonstration, after building WASM and with Python 3 available:
-
-```powershell
-npm run bench:live
-npm run bench:evaluator
-```
-
-These commands call free public data endpoints and save results locally. The prior six-read FX comparison tied the public API baseline under the pinned scoring rule. The context demonstration checks 27 authored cases; it is outside the WASM ABI.
-
-For the local Worker package and eventual public checks, follow [deployment preparation](docs/DEPLOYMENT.md). A demo is not a Telegraph registration or submission.
+Submission materials follow [the checklist](docs/SUBMISSION_CHECKLIST.md).

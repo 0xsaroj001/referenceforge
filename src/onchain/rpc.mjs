@@ -1,5 +1,18 @@
 import { ServiceError } from '../errors.mjs';
 
+async function abortable(promise, signal) {
+  if (!signal) return promise;
+  if (signal.aborted) {
+    // The caller may already have started an operation before checking the
+    // signal. Observe a late rejection even when no wait is possible.
+    Promise.resolve(promise).catch(() => {});
+    throw new Error('deadline');
+  }
+  let abort;
+  const stopped = new Promise((_, reject) => { abort = () => reject(new Error('deadline')); signal.addEventListener('abort', abort, { once: true }); });
+  try { return await Promise.race([promise, stopped]); }
+  finally { signal.removeEventListener('abort', abort); }
+}
 export async function digest(text) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))), b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -10,12 +23,19 @@ export async function boundedText(response, limit, signal) {
   try {
     for (;;) {
       if (signal?.aborted) throw new Error('deadline');
-      const { done, value } = await reader.read(); if (done) break;
+      const { done, value } = await abortable(reader.read(), signal); if (done) break;
       size += value.length;
       if (size > limit) throw new Error('response too large');
       parts.push(value);
     }
-  } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
+  } finally {
+    // Underlying-source cancel hooks may themselves return a stalled promise.
+    // Cleanup must not defeat the caller's deadline or the response-size bound.
+    const cleanupDeadline=AbortSignal.timeout(100);
+    const cleanupSignal=signal?AbortSignal.any([signal,cleanupDeadline]):cleanupDeadline;
+    try { await abortable(reader.cancel(),cleanupSignal); } catch {}
+    finally { reader.releaseLock(); }
+  }
   const bytes = new Uint8Array(size); let offset = 0;
   for (const part of parts) { bytes.set(part, offset); offset += part.length; }
   return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
@@ -52,7 +72,7 @@ export function createRpcSession(network, { fetchImpl = fetch, signal, rpcTimeou
         if(++requests>16)throw new Error('RPC request budget exceeded');
         methods+=calls.length;attempts++;if(attempt)rateLimitRetries++;
         stage='request';httpStatus=null;
-        r=await fetchImpl(network.providers[index].url,{method:'POST',headers:{...network.providers[index].headers,'content-type':'application/json'},redirect:'manual',body:JSON.stringify(body),signal:deadline});
+        r=await abortable(fetchImpl(network.providers[index].url,{method:'POST',headers:{...network.providers[index].headers,'content-type':'application/json'},redirect:'manual',body:JSON.stringify(body),signal:deadline}),deadline);
         httpStatus=r.status;
         if(r.status===429&&attempt===0) {
           const header=r.headers.get('retry-after');
@@ -73,7 +93,7 @@ export function createRpcSession(network, { fetchImpl = fetch, signal, rpcTimeou
       const found = new Map();
       for (const row of rows) {
         if(typeof row?.error?.code==='number')rpcCode=row.error.code;
-        if (!row || row.jsonrpc !== '2.0' || !Number.isInteger(row.id) || row.id < 1 || row.id > calls.length || found.has(row.id) || row.error || !Object.hasOwn(row, 'result')) throw new Error('RPC result');
+        if (!row || row.jsonrpc !== '2.0' || !Number.isInteger(row.id) || row.id < 1 || row.id > calls.length || found.has(row.id) || Object.hasOwn(row, 'error') || !Object.hasOwn(row, 'result')) throw new Error('RPC result');
         found.set(row.id, row.result);
       }
       evidence[index].batches.push({ methods: calls.map(x=>x.method),attempts, response_sha256: await digest(text), duration_ms: Math.round((performance.now()-started)*1000)/1000 });

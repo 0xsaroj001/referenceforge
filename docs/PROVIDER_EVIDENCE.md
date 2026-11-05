@@ -1,42 +1,13 @@
-# ReferenceForge Provider evidence packet
+# Provider evidence packet
 
-This is a preparation packet for one Provider entry. It is not a submitted entry, independent adoption claim or judge score.
+Preparation for one Season II Miners / Providers entry. Not submitted; no independent H2 adoption or official judge score is established.
 
-## Current capability and evidence map
+Each concrete Miner–Intent pair needs: full live request/response contract and version; declared scope; exact test input; expected value and independent source; source timestamps and units; observed output; relevant failure cases; latency/cost/availability measurements; and any finalized network ranking evidence.
 
-| Item | Evidence | Remaining gate |
-|---|---|---|
-| Ten registered intents | Registration 4850 active at the last verified chain/node check | Preserve exact current record; a descriptor revision receives a new ID |
-| Numeric source handling | Exact decimal/provenance tests, ECB daily references and World Bank annual observations | Daily FX does not fulfil institutional live rates/spreads |
-| Blockchain verification | Two operators, chain/block identity, raw-unit preservation and explicit inconclusive states | Explicit metric descriptor adoption and fresh same-Intent scoring |
-| US weather | Complete hourly windows, station age/distance, issued-alert validity, original tests and public HTTP cases | Prospective forecast error measurements and network scoring |
-| Reliability | Bounded budgets, cache validation, failure injection and small live samples | Sustained measurements are not yet established |
-| Workflow impact | Original outdoor-operations consumer demonstration | Our direct HTTP demo is not an independent registered H2 app or verified mission |
-| H2 consumption | No independent groups or qualified repeat use verified | Applicable ranked-routing records, useful outputs and matching accounting evidence |
+Map capabilities to accepted mission-specific tests or actual H2 apps. A proposed link to a mission is not proof that we enabled it. Own-team demonstrations and synthetic tests remain explicitly labelled.
 
-## Proposed reviewer demonstration
+For claimed H2 consumption, record the registered app and operator group, mission, UTC date, request identity, serving pair, input/output, delivery evidence, observed cost/accounting and whether ranked routing applied. Deduplicate request IDs, app groups and repeated Intent labels. Three different meaningful executions and two UTC dates support the published repeat-use criteria; they must be genuine, not generated to inflate counts.
 
-1. Show the current registry entry, descriptor hash and scope.
-2. Use a fresh US coordinate and an explicit future forecast window. Inspect hourly coverage, units, issue and generation timestamps.
-3. Obtain a recent nearby station observation. Inspect station identity, distance, timestamp and missing fields.
-4. Fetch issued alerts. Explain the difference between an empty official feed, unavailable data and no hazard.
-5. Break the request with unsupported geography, an excessive window or missing blockchain identifiers. Verify refusal without a fabricated answer.
-6. Show a genuine Telegraph request and receipt when available, clearly identifying whether the path was direct or ranked. Direct HTTP fallback is labelled separately.
-7. Reproduce tests and inspect limitations. The video or equivalent should take 2–5 minutes.
+Existing evidence as of 1 November IST: 516 local tests; original source and API implementation; the 30 October runtime0.6.0 release with ten hosted hashes and five public field-conformance cases; preserved source/runtime failures; and one negative frozen forecast comparison (52/72 pairs). The new [transaction acceptance workflow](PROVIDER_TX_ACCEPTANCE.md) checks all six canonical fields against separately decoded dual-RPC captures, including a real0.00195ETH transfer, and tests two refusals. Offline replay agrees. These are author-run direct tests, not independent adoption or competitive superiority, and their actual capture times were pre-event.
 
-The campaign targets Provider delivery and excellence with one identity. Useful candidate workflows include agriculture scheduling and outdoor operations, but no mission is claimed completed without relevant independently repeatable evidence. Do not count the same demonstration under several mission labels.
-
-## Release commands
-
-```powershell
-npm ci
-npm test
-npm run prepare:weather:deploy
-npm run build:weather:worker
-npm run audit:weather:bundle
-node tools/check-network-quality.mjs
-node tools/smoke-routing.mjs https://referenceforge.0xsaroj001.workers.dev
-node tools/weather-forecast-skill.mjs --status
-```
-
-Source and tool checks do not sign or pay. Signing helpers are owner-run in the local terminal. Raw evaluation history, prospective captures, reports, keys, competitor snapshots and derived strategy remain local and are excluded from publication and deployment. See [network quality](NETWORK_QUALITY.md), [weather contract](WEATHER_MINER.md) and [official rules](https://hackathon.telegraphprotocol.com/rules).
+Current refresh, 3 November at 14:12 UTC: miner4889 is active with the place descriptor and five concrete Intents; hosted SHA-256 matches the indexed hash. Runtime health is0.7.0. This supersedes the earlier imported4840/4864 onboarding blockers. Remaining gates are actual node-shaped outputs, independent same-Intent quality comparison, sustained availability/capacity and economics, H2 mission workflow evidence and final submission. The replacement's chain/authenticated-validation receipts were not independently checked by this refresh. See [live status](LIVE_STATUS_2026-11-03.md), [checklist](SUBMISSION_CHECKLIST.md) and [rules](SEASON_II_RULES.md).

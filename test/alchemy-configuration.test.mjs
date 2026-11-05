@@ -11,7 +11,7 @@ test('Alchemy secret replaces one service on each network while preserving the o
   const publicNetworks=networksForEnv(),configured=networksForEnv({ALCHEMY_API_KEY:key});
   for(const [name,host] of [['base','base-mainnet'],['base-sepolia','base-sepolia']]){
     assert.equal(configured[name].providers[0].url,`https://${host}.g.alchemy.com/v2`);assert.equal(configured[name].providers[0].headers.Authorization,'Bearer '+key);assert.equal(configured[name].providers[0].operator,'Alchemy account RPC');
-    assert.deepEqual(configured[name].providers[1],publicNetworks[name].providers[1]);assert.equal(publicNetworks[name].providers[0].operator,'dRPC public RPC');
+    assert.deepEqual(configured[name].providers[1],publicNetworks[name].providers[1]);assert.equal(publicNetworks[name].providers[0].operator,'Base official public RPC');
   }
   assert.throws(()=>networksForEnv({ALCHEMY_API_KEY:'https://example.com/secret'}),{code:'RPC_CONFIGURATION'});
 });

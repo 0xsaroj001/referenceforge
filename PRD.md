@@ -1,34 +1,29 @@
 # ReferenceForge product scope
 
-Updated 24 October 2026. Miner version 0.2.1; comparator version 0.2.0.
+Updated 29 October 2026 for Telegraph Season II and Anjoman V2.
 
-## Problem and intended behavior
+## Mapping before implementation
 
-Numeric answers need the right observation, units and period as well as the right number. ReferenceForge retrieves a narrow set of published observations and returns enough context to inspect them. Unsupported requests fail explicitly rather than substituting a nearby answer.
+An Intent is a standardized task; a prefix is its family. A Provider is our callable service. An Evaluator measures answer quality. Ranked routing chooses among eligible Providers. Anjoman is a user interface, while the hackathon has its own registration/submission flow.
 
-## Miner scope
+Today ReferenceForge exposes original numeric, blockchain and US-weather APIs. A new local V2 compatibility layer maps five concrete subsets while retaining ten legacy service families. The next problem is platform acceptance and a useful mission-specific result reviewers can reproduce independently.
 
-| Capability | Source and supported behavior | Scope limits |
-| --- | --- | --- |
-| FX reference | Latest ECB daily reference rates, directed cross-rates and nonnegative amounts | No intraday, executable quotes, forecasts or requested historical dates |
-| Macro reference | World Bank annual GDP in current USD, real GDP growth, inflation, ILO-modelled unemployment and population | No monthly observations, policy rates, GDP per capita or PPP substitution |
-| Observation selection | Exact requested year; otherwise latest available within the configured six-year lookback | Missing or ambiguous observations are refused |
+Who cares: H2 app builders needing accurate payment verification, pinned blockchain facts or published numeric observations, and reviewers who must distinguish a real result from a registration claim. We have no verified customer or partner commitment.
 
-Structured fields take precedence over question inference. Conflicting aliases are refused. The original question is retained for unsupported-scope checks. Decimal strings preserve source precision; conversions use exact integer/rational arithmetic before rounding.
+## Current scope
 
-## Evaluator scope
+One Provider identity, original source-backed service, explicit limitations, independently repeatable correctness and failure behavior. Retain the ten existing capability families in code; advertise a concrete V2 Intent only after its own requirements pass.
 
-The WASM comparator accepts fixed-point signed integers and a comparison specification. It returns a score from 0 to 10,000 or a refusal. The host must declare the numeric scale.
+Priority workflow candidates are payment/transaction evidence for the Stablecoin and Web3/DeFi missions. Those are proposed Provider contributions, not completed apps or verified enabled missions. A separate V2 Evaluator evaluation-material seed is now authorized and implemented locally. App building and automated transactions are not activated; legacy comparator work stays stopped.
 
-A separate host check validates structured country/currency, indicator, units, frequency and observation period before numeric scoring. This check is outside the WASM interface. It neither authenticates metadata nor verifies arbitrary prose.
+## Ranked failures to eliminate
 
-## Acceptance gates
+1. Registering against the wrong deployment or submitting a family prefix.
+2. Returning plausible JSON that fails the Intent's actual scored field or unit.
+3. Wrong chain, block, transaction status, currency orientation or time period.
+4. Issued alerts presented as a numerical future storm-risk assessment.
+5. Incorrect coverage claims: global weather, 240-hour forecasts, live FX or unsupported chains.
+6. Missing source data converted to success, zero or all-clear.
+7. Internal tests or direct HTTP traffic presented as ranked requests, independent adoption or a prize.
 
-1. Fixture, HTTP, failure-recovery and source-precision tests pass.
-2. The comparator passes in both Node and wazero with compatibility exceptions disclosed.
-3. A fresh checkout reproduces the local checks without private archives.
-4. Hosted descriptor and WASM bytes match locally generated hashes.
-5. The authenticated Telegraph validator accepts the final descriptor and endpoint behavior.
-6. Network admission and valid evaluation evidence are recorded before making ranking or participation claims.
-
-Gate 4 passed on 24 October 2026: the public YAML and WASM match prepared bytes, and all eight public smoke checks pass. Gates 5 and 6 remain open. An earlier source timeout is recorded in the [upload handoff](UPLOAD_TO_TELEGRAPH.md). Payments, independent external usage and competition success are not established.
+Success requires a validated concrete Miner–Intent pair, current deployment admission and repeatable mission-specific tests, followed by event-period network evidence and a complete official submission. Local test counts alone do not satisfy these gates.

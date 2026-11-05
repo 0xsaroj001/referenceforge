@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+const origin=process.argv[2]??'http://127.0.0.1:8794';assert(['http://127.0.0.1:8794','https://referenceforge.0xsaroj001.workers.dev'].includes(origin));
+const tx='0x47e50ba8d7f27bd380fe1534ad0bffb7811637f5343a8a8593461e7e096ff865',rows=[];
+async function check(id,path,status,verify){let actual,code;const start=performance.now();try{const r=await fetch(origin+path,{redirect:'error',signal:AbortSignal.timeout(15000)}),a=await r.json();actual=r.status;code=a.error?.code;assert.equal(actual,status);verify(a);rows.push({id,pass:true,status:actual,latency_ms:Math.round(performance.now()-start)});}catch(e){rows.push({id,pass:false,status:actual,code,error:e.message.slice(0,250)});}}
+await check('runtime','/health',200,a=>{assert.equal(a.version,'0.5.4');assert.equal(a.supported_intents.length,10);});
+for(const field of ['gasUsed','confirmations'])await check('lookup-'+field,'/tx?'+new URLSearchParams({chain:'Base Sepolia',tx_hash:tx,field}),200,a=>{assert.equal(a.verified_answer,true);assert.equal(a.verification.sources.length,2);assert.equal(a.score_value,field==='gasUsed'?a.receipt.gas_used:a.confirmations_l2);assert.equal(a.unit,field==='gasUsed'?'gas':'L2_blocks');});
+for(const field of ['value','total_fee_wei'])await check('refuse-'+field,'/tx?'+new URLSearchParams({chain:'base-sepolia',tx_hash:tx,field}),422,a=>{assert.equal(a.error.code,'UNSUPPORTED_FIELD');assert.equal(Object.hasOwn(a,'score_value'),false);});
+await check('no-network-guess','/tx?'+new URLSearchParams({chain:'ethereum',tx_hash:tx}),422,a=>assert.equal(a.error.code,'UNSUPPORTED_CHAIN'));
+const report={checked_at:new Date().toISOString(),origin,passed:rows.filter(x=>x.pass).length,total:rows.length,rows,scope:'Bounded direct HTTP release checks on our own confirmed testnet transaction. No signature, payment, registration, ranked inference or score recovery is verified.'};
+await mkdir('reports/network-quality',{recursive:true});await writeFile('reports/network-quality/'+(origin.startsWith('http://127')?'workerd':'public')+'-quality-'+Date.now()+'.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));if(report.passed!==report.total)process.exitCode=1;

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {readFile,readdir,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const map=JSON.parse(await readFile('dist/v2-worker/v2-worker.js.map','utf8')),code=await readFile('dist/v2-worker/v2-worker.js','utf8');
+const allowed=['src/miner.mjs','src/errors.mjs','src/decimal.mjs','src/upstream.mjs','src/responses.mjs','src/onchain/routes.mjs','src/onchain/input.mjs','src/onchain/rpc.mjs','src/onchain/verify.mjs','src/unified.mjs','src/weather.mjs','src/v2.mjs','deploy/unified-worker.mjs','deploy/v2-worker.mjs'];
+assert.equal(map.sources.length,allowed.length);assert(map.sources.every(p=>allowed.some(a=>p.replaceAll('\\','/').endsWith(a))),'Unexpected source module');
+assert(!/local-competitor-audit|PREVIOUS_WINNER_AUDIT|ASYMMETRIC_STRATEGY|evaluator-v2|register-wasm|PRIVATE_KEY|alch_[A-Za-z0-9_-]{16,}/.test(code),'Private/signing source marker bundled');
+const p=JSON.parse(await readFile('reports/v2-provider/prepared.json','utf8')),assets=[...p.preserved,...p.outputs];
+assert.deepEqual((await readdir('deploy/v2-public')).sort(),assets.map(x=>x.file).sort());
+for(const a of assets)assert.equal('0x'+createHash('sha256').update(await readFile('deploy/v2-public/'+a.file)).digest('hex'),a.sha256);
+const report={checked_at:new Date().toISOString(),modules:map.sources.length,bundle_bytes:Buffer.byteLength(code),assets:assets.map(a=>({file:a.file,sha256:a.sha256})),boundary_passed:true,signing_code_absent:true,evaluation_questions_absent:true,status:'local_bundle_only_not_public_deployment'};
+await writeFile('reports/v2-provider/bundle-audit.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

@@ -1,0 +1,326 @@
+{
+  "checked_on": "2026-11-04",
+  "scope": "Official contract fields only; no miner catalogue or participant data.",
+  "contracts": [
+    {
+      "intent": "MACRO_ECONOMIC_INDICATOR_GENERAL",
+      "source": "https://devnode.telegraphprotocol.com/engine/v1/intents/MACRO_ECONOMIC_INDICATOR_GENERAL",
+      "request": {
+        "params": [
+          {
+            "name": "indicator",
+            "type": "enum",
+            "required": true,
+            "description": "The indicator: unemployment rate, % of the total labour force (World Bank SL.UEM.TOTL.ZS)",
+            "allowed": [
+              "unemployment rate"
+            ]
+          },
+          {
+            "name": "country",
+            "type": "string",
+            "required": true,
+            "description": "Country"
+          },
+          {
+            "name": "year",
+            "type": "integer",
+            "required": true,
+            "description": "Year",
+            "min": 1960,
+            "max": 2100
+          }
+        ],
+        "schema_version": 1,
+        "served_by": "MACRO_ECONOMIC_INDICATOR_GENERAL"
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "rate_pct",
+            "description": "Unemployment rate (% of total labour force, World Bank indicator {indicator}) for {country_name} ({country}) in {year}, in percent",
+            "type": "number",
+            "unit": "percent",
+            "range": [
+              0,
+              100
+            ],
+            "scored": true,
+            "decimals": 6
+          }
+        ],
+        "format_version": 1,
+        "served_by": "MACRO_ECONOMIC_INDICATOR_GENERAL"
+      }
+    },
+    {
+      "intent": "ONCHAIN_TX_LOOKUP_GENERAL",
+      "source": "https://devnode.telegraphprotocol.com/engine/v1/intents/ONCHAIN_TX_LOOKUP_GENERAL",
+      "request": {
+        "params": [
+          {
+            "name": "tx_hash",
+            "type": "string",
+            "required": true,
+            "description": "Transaction hash"
+          },
+          {
+            "name": "chain",
+            "type": "string",
+            "required": true,
+            "description": "Chain of the transaction"
+          }
+        ],
+        "schema_version": 1,
+        "served_by": "ONCHAIN_TX_LOOKUP_GENERAL"
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "tx_hash",
+            "description": "The transaction hash looked up",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "status",
+            "description": "Transaction status",
+            "type": "enum",
+            "allowed": [
+              "confirmed",
+              "reverted",
+              "pending",
+              "not_found"
+            ],
+            "processed": true
+          },
+          {
+            "name": "from",
+            "description": "Sender address",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "to",
+            "description": "Recipient or contract address",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "block_number",
+            "description": "Block the transaction was included in",
+            "type": "number",
+            "unit": "block height",
+            "range": [
+              0,
+              1000000000000
+            ],
+            "scored": true,
+            "decimals": 0,
+            "off_chain": true
+          },
+          {
+            "name": "value_eth",
+            "description": "Native-token value transferred, in whole units",
+            "type": "number",
+            "unit": "whole native units",
+            "range": [
+              0,
+              1000000000000
+            ],
+            "decimals": 6,
+            "off_chain": true
+          }
+        ],
+        "format_version": 1,
+        "served_by": "ONCHAIN_TX_LOOKUP_GENERAL"
+      }
+    },
+    {
+      "intent": "WALLET_BALANCE_CHECK_GENERAL",
+      "source": "https://devnode.telegraphprotocol.com/engine/v1/intents/WALLET_BALANCE_CHECK_GENERAL",
+      "request": {
+        "params": [
+          {
+            "name": "address",
+            "type": "string",
+            "required": true,
+            "description": "Address or ENS name"
+          },
+          {
+            "name": "chain",
+            "type": "string",
+            "required": true,
+            "description": "Chain"
+          },
+          {
+            "name": "token",
+            "type": "string",
+            "description": "Token symbol or contract address; empty for the chain's native coin"
+          }
+        ],
+        "schema_version": 1,
+        "served_by": "WALLET_BALANCE_CHECK_GENERAL"
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "address",
+            "description": "The blockchain address whose balance is reported",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "chain",
+            "description": "The chain the balance is on",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "balance",
+            "description": "Balance held, in whole units of the coin or token (not wei)",
+            "type": "number",
+            "unit": "whole token units",
+            "range": [
+              0,
+              1000000000000000
+            ],
+            "scored": true,
+            "decimals": 6
+          },
+          {
+            "name": "token_symbol",
+            "description": "Symbol of the coin or token the balance is in",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "as_of",
+            "description": "Timestamp of the balance reading",
+            "type": "string",
+            "off_chain": true
+          }
+        ],
+        "format_version": 1,
+        "served_by": "WALLET_BALANCE_CHECK_GENERAL"
+      }
+    },
+    {
+      "intent": "WEATHER_FORECAST_GENERAL",
+      "source": "https://devnode.telegraphprotocol.com/engine/v1/intents/WEATHER_FORECAST_GENERAL",
+      "request": {
+        "params": [
+          {
+            "name": "location",
+            "type": "string",
+            "required": true,
+            "description": "City or place name"
+          },
+          {
+            "name": "window_hours",
+            "type": "integer",
+            "required": true,
+            "description": "Forecast window",
+            "min": 1,
+            "max": 240,
+            "unit": "hours"
+          }
+        ],
+        "schema_version": 3,
+        "served_by": "WEATHER_FORECAST"
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "location",
+            "description": "The place the forecast is for",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "when",
+            "description": "The day or window the forecast covers",
+            "type": "string",
+            "off_chain": true
+          },
+          {
+            "name": "temp_max_c",
+            "description": "Forecast high temperature, degrees Celsius",
+            "type": "number",
+            "unit": "degrees Celsius",
+            "range": [
+              -90,
+              60
+            ],
+            "scored": true,
+            "decimals": 6
+          },
+          {
+            "name": "temp_min_c",
+            "description": "Forecast low temperature, degrees Celsius",
+            "type": "number",
+            "unit": "degrees Celsius",
+            "range": [
+              -90,
+              60
+            ],
+            "decimals": 6
+          },
+          {
+            "name": "precipitation_probability_pct",
+            "description": "Peak chance of precipitation, percent",
+            "type": "number",
+            "unit": "percent",
+            "range": [
+              0,
+              100
+            ],
+            "decimals": 6,
+            "off_chain": true
+          },
+          {
+            "name": "condition",
+            "description": "Expected weather condition in plain words",
+            "type": "string",
+            "off_chain": true
+          }
+        ],
+        "format_version": 3,
+        "served_by": "WEATHER_FORECAST"
+      }
+    },
+    {
+      "intent": "WEATHER_CHECK_TEMPERATURE",
+      "source": "https://devnode.telegraphprotocol.com/engine/v1/intents/WEATHER_CHECK_TEMPERATURE",
+      "request": {
+        "params": [
+          {
+            "name": "location",
+            "type": "string",
+            "required": true,
+            "description": "City or place name, or latitude,longitude"
+          }
+        ],
+        "schema_version": 3,
+        "served_by": "WEATHER_CHECK"
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "temperature_c",
+            "description": "Current air temperature in {key}, in degrees Celsius",
+            "type": "number",
+            "unit": "degrees Celsius",
+            "range": [
+              -90,
+              60
+            ],
+            "scored": true
+          }
+        ],
+        "format_version": 1,
+        "served_by": "WEATHER_CHECK_TEMPERATURE"
+      }
+    }
+  ]
+}

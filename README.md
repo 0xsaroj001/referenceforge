@@ -1,74 +1,45 @@
 # ReferenceForge
 
-The current runtime serves ten capabilities under one ReferenceForge identity: its seven numeric/blockchain capabilities plus WEATHER_FORECAST, WEATHER_CHECK and STORM_ALERT. Weather uses original NWS-backed endpoints for US land coordinates. See [the weather guide](docs/WEATHER_MINER.md) and [requirements map](docs/WEATHER_REQUIREMENTS.md) for exact boundaries, tests and the current user-run update command.
+Original source-backed numeric, blockchain and weather Provider, with a separate V2 evaluation-material contribution and original deterministic comparator. Current campaign: **Telegraph Season II, Providers and Evaluators**. Live status checked 3 November 2026 at 14:12 UTC; see [current evidence and gates](docs/LIVE_STATUS_2026-11-03.md).
 
-The last verified on-chain registration is still 4844 with four intents; 4838 and 4843 are inactive. One user-run update can activate the ten-intent descriptor without an intermediate seven-intent update. The new helper also handles a completed seven-intent update when its exact receipt and original journal are available. Direct endpoint availability, registration, node activation and routed scoring are separate states. WASM development remains stopped.
+Start with [documentation index](docs/INDEX.md), [current rules](docs/SEASON_II_RULES.md), [V2 migration](docs/ANJOMAN_V2.md), [requirements and evidence](docs/REQUIREMENTS_AND_EVIDENCE.md) and [submission checklist](docs/SUBMISSION_CHECKLIST.md).
 
-The earlier separate Onchain service remains hosted during migration. Its implementation and scope are documented in [ONCHAIN_MINER.md](docs/ONCHAIN_MINER.md). Legacy public YAML and WASM bytes remain available at their original URLs.
+## Current state
 
-The original ReferenceForge 0.2.1 implementation serves numeric references from the European Central Bank and World Bank. The repository also includes its original Rust WASM comparator, structured-context evaluation harness and separate service packages. The deployed weather Worker reports version 0.5.2.
+| Layer | Verified state |
+|---|---|
+| Original service | Ten retained legacy families and five concrete V2 routes; public runtime 0.7.0 |
+| Latest coverage | Exact US place/state weather resolution using pinned Census data; 1..48-hour NWS scope remains |
+| Tests | 561/561 automated checks; local workerd, 17-module boundary audit, twelve public asset pins and city current/forecast checks pass |
+| New platform | [Anjoman](https://anjoman.ai/); Provider tools at /dashboard/earn and /dashboard/registrations |
+| V2 discovery | 136 concrete intents observed; twelve candidate names inspected across our ten families |
+| V2 admission | Miner 4889 active in the node with referenceforge-places-v2.yaml and five concrete Intents; hosted SHA-256 matches the indexed hash. Replaces 4864 |
+| Live sources | All five concrete routes pass live-source field checks after the anonymous RPC fix. Deployed legacy Alchemy wallet check also passes |
+| Forecast evidence | 52/72 paired hours; forecast MAE 1.563250 C versus persistence 1.550000 C. No superiority established |
+| Submission/adoption | Neither H2 submission nor independent H2 consumption verified |
+| Evaluation material | Original synthetic material/frozen baselines preserved. Fresh supported-domain agent review matched 12/12; separate post-freeze chain inconsistency fixed in optional v3, with no unseen v3 quality claim |
+| Original WASM | WEATHER_CHECK registration 45 now superseded; its recorded deterministic gate remains 1120 cases, zero mismatches. Temperature routes through the family, currently champion 59 |
 
-The original numeric deployment's source and artifact checks passed on 24 October 2026. Local correctness and deployment do not establish scoring, rewards or a competitive ranking advantage. The [original upload handoff](UPLOAD_TO_TELEGRAPH.md) is historical; use the weather guide for the current update.
+The competition runs 1 November to 1 December 2026. Final cutoff: **1 December 23:59 UTC / 2 December 05:29 IST**. H2 transaction/activity evidence must come from the event period. Registration on the protocol is separate from registration and final submission on the H2 website.
 
-See [network quality and the optional routing-contract revision](docs/NETWORK_QUALITY.md) for the verified score failure classes and owner-run metadata update. [The Provider evidence packet](docs/PROVIDER_EVIDENCE.md) separates completed tests from pending routing, forecast skill and adoption evidence.
+## Local development
 
-## Run locally
-
-For the ten-capability Worker, run `npm run dev:weather:worker`. The earlier seven-capability runtime is available with `npm run dev:expanded:worker`. The commands below run the legacy numeric Node server; `npm run start:onchain` runs the separate on-chain Node adapter. The earlier four-endpoint Worker can still be run with `npm run dev:unified:worker`.
-
-Requires Node.js 24 or newer. Rust with the `wasm32-unknown-unknown` target builds the comparator; Go 1.26 runs the second WASM runtime and pinned official reference check. Python 3 runs the optional independent live transformation check.
+Node.js 24+, Python 3 and locked dependencies:
 
 ```powershell
 npm ci
-npm test
-npm start
+node tools/release-places.mjs --check
+node node_modules/wrangler/bin/wrangler.js dev --config deploy/places.wrangler.jsonc --local --ip 127.0.0.1 --port 8797
 ```
 
-The Node server listens on `http://127.0.0.1:8787`.
+In a second terminal run `node tools/smoke-places.mjs --live`. These commands publish nothing; live smoke makes free direct upstream source requests. The local release check includes the full test suite and pinned Census preparation. See [US place weather](docs/US_PLACE_WEATHER.md), [Evaluator material](evaluator-v2/README.md), [architecture](ARCHITECTURE.md), [on-chain service](docs/ONCHAIN_MINER.md) and [weather service](docs/WEATHER_MINER.md).
 
-| Request | Purpose |
-| --- | --- |
-| `GET /health` | Service version, supported intents and explicit registration state |
-| `GET /fx?base=USD&quote=INR&amount=20` | Latest published ECB daily reference conversion |
-| `GET /macro?country=US&indicator=unemployment&year=2019` | Exact annual World Bank observation |
+## Current work
 
-Successful responses include decimal strings, units, observation periods and source provenance. Unsupported scope and unavailable observations return explicit errors. The miner requires no upstream API key.
+The [local verification package](docs/VERIFICATION_PACKAGE.md) adds a reproducible wallet workflow and comparator-v2 runtime gates. Start offline with `npm run demo:wallet`. Its direct-source, synthetic-review and local-runtime results remain separate from platform admission.
 
-## Build and verify WASM
+The [4 November wallet follow-up](docs/WALLET_NODE_SHAPING.md) fixes local schema metadata to 1/1 and reproduces six-decimal on-chain encoding while preserving the exact displayed balance. Its focused suite passes 72 tests. Actual Engine-shaped output and deployed comparator configuration remain unverified; no upload or signing occurred.
 
-```powershell
-rustup target add wasm32-unknown-unknown
-npm run test:rust
-npm run build:wasm
-npm run test:wasm
-npm run test:wazero
-npm run test:official
-npm run bench:miner
-npm run bench:input-cache
-npm run bench:wasm
-```
+Use `node tools/release-places.mjs --check` for the current runtime. The [place descriptor](docs/US_PLACE_WEATHER.md) is public and indexed by active miner 4889; do not repeat the completed registration using an older handoff. Current node shaping, fair quality comparisons and real useful consumption remain separate evidence gates. Comparator v2 and the evidence evaluators are available as source for local verification. Old Base repair tools must not be redirected. See [live status](docs/LIVE_STATUS_2026-11-03.md).
 
-The official check downloads two hash-pinned MIT-licensed files from an official repository revision into an ignored local cache if absent. It executes that reference as a test answer key. It does not establish which revision a live node uses.
-
-The 2,400-vector corpus includes 2,370 arithmetic-safe cases matching the pinned reference and 30 overflow-domain cases deliberately refused by our comparator. Zero truth is also refused. See [validation](docs/VALIDATION.md) for limits and reproduction details.
-
-## Documentation
-
-1. [Product scope](PRD.md)
-2. [Architecture](ARCHITECTURE.md)
-3. [Implementation phases](PHASES.md)
-4. [Open gaps](GAPS.md)
-5. [Demo procedure](DEMO.md)
-6. [HTTP and WASM interfaces](docs/INTERFACES.md)
-7. [Validation and benchmark methodology](docs/VALIDATION.md)
-8. [Deployment and registration preparation](docs/DEPLOYMENT.md)
-9. [Contribution and publication boundaries](CONTRIBUTING.md)
-
-Generated artifacts, reports, session notes and research archives are excluded from version control. A source repository or a prepared deployment package is not a running miner or a registration receipt.
-
-## Optional user-run terminal registration
-
-The [terminal guide](docs/TERMINAL_REGISTRATION.md) covers the original WASM-only helper. It uses the official Base Sepolia RPC, verifies the pinned hosted artifact, reads the key through a hidden local prompt and asks for explicit confirmation before one broadcast. It never registers the miner. A durable local transaction record blocks a second submission after a timeout. The agent has not run a signing or broadcast mode.
-## Weather validation
-
-ReferenceForge now has three original NWS-backed US weather endpoints alongside its seven existing capabilities. See [weather setup, boundaries and update command](docs/WEATHER_MINER.md) and the [requirements map](docs/WEATHER_REQUIREMENTS.md). Public weather checks pass 32/32 and the previous-capability regression checks pass 29/29. These are direct HTTP results; the ten-intent registration update, routing and forecast accuracy remain separate verification steps.
+Competitor repositories, derived strategy, reports, credentials and wallet journals remain local. Obsolete guides are archived locally.

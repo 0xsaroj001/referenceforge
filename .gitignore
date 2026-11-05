@@ -19,7 +19,11 @@ __pycache__/
 /deploy/unified-public/
 /deploy/expanded-public/
 /deploy/weather-public/
+/deploy/v2-public/
+/deploy/places-public/
+/deploy/comparator-v2-public/
 /deploy/bundle/
+/deploy/dist/
 /.wrangler/
 **/.wrangler/
 /LIVE_BENCHMARK_PLAN.md
@@ -28,4 +32,6 @@ __pycache__/
 /bundle/
 /MEMORY.md
 /AGENTS.md
+/CLAUDE.md
+/ACCOUNT_BINDING.local.json
 /tools/verify-registered-wasm.mjs

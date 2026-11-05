@@ -1,38 +1,38 @@
 # ReferenceForge architecture
 
-## Request flow
+Updated 29 October 2026. Original implementation reference. Current platform admission requires [Anjoman V2 migration](docs/ANJOMAN_V2.md).
 
-`HTTP request -> parameter/scope validation -> bounded source client -> source parser -> exact decimal transformation -> context and provenance response`
+## Existing service flow
 
-The Node server and Worker share the same miner implementation and response envelopes.
+HTTP request → bounded input/scope checks → numeric, on-chain or weather handler → bounded source read/cache → semantic validation and unit conversion → result with timestamps and provenance, or explicit refusal.
 
-| Module | Responsibility |
-| --- | --- |
-| `src/server.mjs` | Node HTTP transport, GET and JSON POST, input bounds |
-| `src/miner.mjs` | Currency orientation, indicator mapping, observation selection and scope refusal |
-| `src/upstream.mjs` | Fixed HTTPS hosts, shared timeout, retry, bounded cache and request coalescing |
-| `src/decimal.mjs` | Integer/rational decimal parsing, original JSON numeric-token precision and formatting |
-| `src/responses.mjs` | Shared health and error envelopes |
-| `src/evaluation.mjs` | Structured-context guard, explicit fixed-point scaling and WASM invocation |
-| `deploy/worker.mjs` | Fetch transport and three explicitly exposed artifact paths |
-| `wasm/comparator/src/lib.rs` | Original deterministic comparator and 16-byte ABI allocation |
+| Component | Responsibility |
+|---|---|
+| src/unified.mjs | Dispatches existing capability routes |
+| src/v2.mjs | Five concrete intent adapters; canonical fields plus original evidence; strict precision/scope refusals |
+| src/miner.mjs, src/decimal.mjs | ECB FX, World Bank annual indicators, conversion and exact decimal handling |
+| src/upstream.mjs | Allowlisted numeric upstreams, bounded reads/timeouts, cache validation and coalescing |
+| src/onchain/ | Base/Base Sepolia RPC, transfer verification, pinned metrics, transaction and wallet lookups |
+| src/weather.mjs | NWS point/hourly/station/alert semantics with geographic, age and request bounds |
+| deploy/v2-worker.mjs | V2 plus legacy dispatch, ten explicit public assets and shared isolate-level admission |
+| contracts/v2-intents.json | Dated official request/response contract fields, excluding all participant catalogue data |
+| evaluator-v2/ | Separate original evaluation-material audit code; private seed stays outside served assets |
+| src/weather-brief.mjs, src/weather-window-planner.mjs | Original offline consumer demonstrations |
+| tools/lib/weather-* | Offline evidence validation/analysis; synthetic checks remain explicitly labelled |
+| wasm/ | Historical original comparator; development and registration stay stopped |
 
-## Source boundary
+## Trust and source boundaries
 
-Only the configured ECB and World Bank HTTPS hosts are fetched by the miner. Redirects are refused. Source responses have a 1 MB limit; four reads may be active concurrently. Two attempts share an eight-second budget. Successful payloads are validated before entering a cache of at most 128 entries.
+Numeric, RPC and NWS responses undergo their own bounded semantic checks. Unsupported chain, unit, geography, date or metric is not silently substituted. Missing values remain unavailable; source failure cannot become zero or an all-clear answer. The Kansas 0.5.4 fix permits one bounded same-station history page without relaxing freshness/distance limits.
 
-Pending requests are coalesced. Invalid cached payloads and observations that become stale within a cache TTL are refreshed. Failed reads do not become plausible numeric answers.
+Source URLs, SHA-256 hashes and local fetch timestamps identify captured bytes. They do not independently authenticate an upstream's truth or attest pre-target capture time. Offline artifact checking and statistical analysis retain that distinction.
 
-Source URL, SHA-256 and fetch time describe captured bytes. They are provenance fields, not upstream signatures or independent confirmation of economic truth.
+Alchemy credentials remain encrypted Worker secrets. Wallet-signing code is confined to owner terminal tooling, outside the served Worker bundle. Competitor research, reports, local strategy and credentials are excluded from public assets.
 
-## Numeric boundary
+## V2 integration boundary
 
-FX cross-rates use rational arithmetic and render 12 decimal places. Annual macro values retain their source decimal representation. Conversion to WASM integers occurs only with a declared positive scale and signed 64-bit range checks.
+The API retains ten legacy capability families. `src/v2.mjs` and the descriptor select five concrete subsets with canonical inputs, root fields and exact units. After fixing the anonymous RPC source, all five local workerd live responses pass field conformance. The original dRPC failure remains recorded. `tools/lib/v2-validation.mjs` checks provider fields and platform replies separately; it does not fabricate node field statuses. Admission and ranked routing require actual platform evidence.
 
-The comparator uses signed 64-bit saturation where required by the pinned reference and wider multiplication for relative error. It refuses zero truth and signed difference/absolute-value overflow. The ABI is serial: allocation supplies one static 16-byte specification, so simultaneous outstanding specifications are unsupported.
+The prepared V2 Worker boundary permits fourteen original runtime modules and ten explicit public assets, preserving eight historical artifact byte sequences and adding a candidate descriptor/manifest. The Evaluator questions, audit outputs, local strategy, wallet tooling and source archives are absent from that package. See [live status](docs/LIVE_STATUS_2026-11-03.md) for the indexed Provider and deployed runtime.
 
-## Deployment boundary
-
-The Worker serves only `miner.yaml`, `referenceforge-comparator.wasm` and `artifact-manifest.json` as public assets. The bundle checker verifies that asset set, hashes and source-map paths. Research, local reports and generated build directories are excluded from Git.
-
-The server has no registration transaction or payment integration. A successful HTTP request, hosted artifact, validator pass and network registration are separate evidence states.
+Local correctness, public HTTP service, current deployment identity, node admission, shaped outputs, ranked routing, independent mission use and H2 submission are separate gates. See [requirements](docs/REQUIREMENTS_AND_EVIDENCE.md) and [deployment gates](docs/DEPLOYMENT.md).

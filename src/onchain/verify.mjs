@@ -173,12 +173,14 @@ export function createOnchainMiner({ networks=NETWORKS, fetchImpl=fetch, now=Dat
   }
   async function lookup(params,{signal}={}) {
     if(!params||Object.keys(params).some(k=>!['chain','tx_hash','field'].includes(k)))fail('UNSUPPORTED_PARAMETER','Supply chain, tx_hash and an optional lookup field');
-    const field=params.field??'status';
-    if(!['status','gas_used','value_wei','from','to','block_number'].includes(field))fail('UNSUPPORTED_FIELD','Lookup field must be status, gas_used, value_wei, from, to or block_number');
+    const label=typeof params.field==='string'?params.field.trim().replace(/([a-z])([A-Z])/g,'$1_$2').toLowerCase().replace(/[ -]+/g,'_'):params.field??'status';
+    const field=({execution_status:'status',transaction_status:'status',sender:'from',recipient:'to',native_value_wei:'value_wei',confirmations:'confirmations_l2',gas_price_wei:'effective_gas_price_wei',logs_count:'log_count'})[label]??label;
+    const units={status:'execution_status',gas_used:'gas',value_wei:'wei',from:'address',to:'address',block_number:'block_number',nonce:'nonce',confirmations_l2:'L2_blocks',log_count:'logs',effective_gas_price_wei:'wei_per_gas',execution_fee_wei:'wei',l1_data_fee_wei:'wei'};
+    if(!Object.hasOwn(units,field))fail('UNSUPPORTED_FIELD','Choose an explicit execution status, address, block, nonce, confirmations_l2, log_count or gas/fee field with documented units; ambiguous value, price and total-fee fields are refused');
     const result=await metric({chain:params.chain,tx_hash:params.tx_hash,metric:'transaction'},{signal});
-    const selected=!result.verified_answer?null:field==='status'?result.receipt.status:field==='gas_used'?result.receipt.gas_used:result.transaction[field];
+    const selected=!result.verified_answer?null:field==='status'?result.receipt.status:field==='gas_used'?result.receipt.gas_used:field==='confirmations_l2'?result.confirmations_l2:field==='log_count'?String(result.receipt.logs.length):['effective_gas_price_wei','execution_fee_wei','l1_data_fee_wei'].includes(field)?result.fees[field]:result.transaction[field];
     const available=selected!==null&&selected!==undefined;
-    return {...result,intent:'ONCHAIN_TX_LOOKUP',field,score_value:available?selected:null,verified_answer:result.verified_answer&&available,fulfillment:available?'answered':'inconclusive',unit:field==='gas_used'?'gas':field==='value_wei'?'wei':field==='from'||field==='to'?'address':field==='block_number'?'block_number':'execution_status',summary:!result.verified_answer?result.summary:available?`Transaction ${result.tx_hash} is ${result.state}; ${field} = ${selected}. Gas used: ${result.receipt.gas_used}. L2 confirmations: ${result.confirmations_l2}.`:'The selected transaction field is absent; contract creation has no recipient address.'};
+    return {...result,intent:'ONCHAIN_TX_LOOKUP',field,score_value:available?selected:null,verified_answer:result.verified_answer&&available,fulfillment:available?'answered':'inconclusive',unit:units[field],summary:!result.verified_answer?result.summary:available?`Transaction ${result.tx_hash} is ${result.state}; ${field} = ${selected} ${units[field]}. Gas used: ${result.receipt.gas_used}. L2 confirmations: ${result.confirmations_l2}.`:'The selected transaction field is unavailable; no substituted value or fabricated complete fee is returned.'};
   }
   return {transfer,metric,wallet,lookup};
 }

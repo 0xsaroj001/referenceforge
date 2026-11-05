@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { expandedDescriptor, UNIFIED_ORIGIN } from './render-expanded-miner.mjs';
-const origin=process.argv[2]??'http://127.0.0.1:8793';assert(['http://127.0.0.1:8793',UNIFIED_ORIGIN].includes(origin));
+const origin=process.argv[2]??'http://127.0.0.1:8793';assert(['http://127.0.0.1:8793','http://127.0.0.1:8794',UNIFIED_ORIGIN].includes(origin));
 const root=new URL('../',import.meta.url),dir=new URL('reports/intent-expansion/',root),prepared=JSON.parse(await readFile(new URL('prepared.json',dir),'utf8'));
 const rows=[],answers=[],sha=b=>'0x'+createHash('sha256').update(b).digest('hex');
 async function check(id,path,status,verify,options={}){
@@ -15,7 +15,7 @@ async function check(id,path,status,verify,options={}){
 }
 for(const x of prepared.preserved)await check('preserved-'+x.file,'/'+x.file,200,(_,__,b)=>assert.equal(sha(b),x.sha256));
 for(const x of prepared.outputs)await check('candidate-'+x.file,'/'+x.file,200,(a,r,b)=>{assert.equal(sha(b),x.hash);assert.deepEqual(a,expandedDescriptor({keepFx:x.keepFx}));assert.match(r.headers.get('content-type'),/yaml/);});
-await check('seven-capability-health','/health',200,a=>{assert(expandedDescriptor().semantics.supported_intents.every(i=>a.supported_intents.includes(i)));assert(['0.4.0','0.5.0','0.5.1','0.5.2'].includes(a.version));});
+await check('seven-capability-health','/health',200,a=>{assert(expandedDescriptor().semantics.supported_intents.every(i=>a.supported_intents.includes(i)));assert(['0.4.0','0.5.0','0.5.1','0.5.2','0.5.3','0.5.4'].includes(a.version));});
 for(const path of ['/research/','/reports/state.json','/.env','/sign'])await check('private-absent-'+path,path,404);
 for(const path of ['/convert','/tx','/wallet-balance']){
   await check('required-input-'+path,path,422,a=>assert(!Object.hasOwn(a,'score_value')));

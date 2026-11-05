@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {checkAnswerWithCaptureIdentity} from '../evaluator-v2/capture-identity-v2.mjs';
+import {checkAnswerWithCaptureChain} from '../evaluator-v2/capture-chain-v3.mjs';
+const h=x=>'0x'+x.repeat(64),a=x=>'0x'+x.repeat(40);
+function fixture(chain='base'){const id=chain==='base'?'0x2105':'0x14a34';return {request:{chain,tx_hash:h('a')},evidence:{chain_id:id,transaction:{chainId:id,hash:h('a'),blockHash:h('b'),blockNumber:'0x64',from:a('1'),to:a('2'),value:'0x16345785d8a0000',transactionIndex:'0x0'},receipt:{transactionHash:h('a'),blockHash:h('b'),blockNumber:'0x64',status:'0x1',from:a('1'),to:a('2'),transactionIndex:'0x0'},block:{hash:h('b'),number:'0x64',transactions:[h('a')]}},answer:{tx_hash:h('a'),status:'confirmed',from:a('1'),to:a('2'),block_number:100,value_eth:0.1}};}
+const run=x=>checkAnswerWithCaptureChain(x.request,x.evidence,x.answer);
+test('new chain policy accepts matching Base and Base Sepolia witnesses',()=>{for(const chain of ['base','base_sepolia']){const r=run(fixture(chain));assert(r.valid);assert.equal(r.transaction_chain_checked,true);assert.equal(r.cryptographic_inclusion_proof,false);}});
+test('post-freeze chain conflict is reproduced in v2 and refused in v3',()=>{const x=fixture();x.evidence.transaction.chainId='0x14a34';assert(checkAnswerWithCaptureIdentity(x.request,x.evidence,x.answer).valid);assert.equal(run(x).refusal,'CONFLICTING_TRANSACTION_CHAIN');});
+test('missing, rounded numeric and noncanonical transaction chain witnesses abstain',()=>{for(const value of [undefined,null,8453,'0x02105','0x','0X2105','base']){const x=fixture();x.evidence.transaction.chainId=value;assert.equal(run(x).refusal,'MISSING_OR_MALFORMED_TRANSACTION_CHAIN');}});
+test('wrong capture chain and existing inclusion contradictions remain refused',()=>{const wrong=fixture();wrong.evidence.chain_id='0x1';assert.equal(run(wrong).refusal,'WRONG_CHAIN');const excluded=fixture();excluded.evidence.block.transactions=[];assert.equal(run(excluded).refusal,'CONFLICTING_BLOCK_MEMBERSHIP');});
+test('unsupported claims and incorrect canonical answers remain rejected',()=>{const extra=fixture();extra.answer.finalized=true;assert.equal(run(extra).valid,false);const incorrect=fixture();incorrect.answer.value_eth=9;assert.equal(run(incorrect).valid,false);});

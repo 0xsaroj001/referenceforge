@@ -16,7 +16,7 @@ function fixture(change={}){
   const observation=id=>({type:'Feature',properties:{station:origin+'/stations/'+id,timestamp:'2026-11-01T05:00:00Z',temperature:{value:20,unitCode:'wmoUnit:degC',qualityControl:'V'},windSpeed:{value:2,unitCode:'wmoUnit:m_s-1',qualityControl:'V'},relativeHumidity:{value:50,unitCode:'wmoUnit:percent'},textDescription:'Cloudy'}});
   const fetchImpl=async(url,options)=>{
     calls.push({url,options});const path=new URL(url).pathname;
-    let body=path.startsWith('/points/')?structuredClone(data.point):path.endsWith('/forecast/hourly')?structuredClone(data.forecast):path.endsWith('/stations')?structuredClone(data.stations):path.includes('/observations/')?observation(path.split('/')[2]):structuredClone(data.alerts);
+    let body=path.startsWith('/points/')?structuredClone(data.point):path.endsWith('/forecast/hourly')?structuredClone(data.forecast):path.endsWith('/stations')?structuredClone(data.stations):path.endsWith('/observations')?{type:'FeatureCollection',features:[]}:path.includes('/observations/')?observation(path.split('/')[2]):structuredClone(data.alerts);
     const result=await change.mutate?.(body,path);if(result instanceof Response)return result;if(result!==undefined)body=result;
     return Response.json(body,{headers:{'cache-control':'public, max-age=300'}});
   };
@@ -58,7 +58,7 @@ test('nearest stale station may be replaced only by a disclosed fresh nearby sta
 });
 test('current weather refuses stale/future measurements, no nearby stations or wrong station identity',async()=>{
   for(const mutate of [(d,path)=>{if(path.includes('/observations/'))d.properties.timestamp='2026-10-31T00:00:00Z';return d;},(d,path)=>{if(path.includes('/observations/'))d.properties.timestamp='2026-11-02T00:00:00Z';return d;},(d,path)=>{if(path.endsWith('/stations'))d.features.forEach(x=>x.geometry.coordinates=[0,0]);return d;},(d,path)=>{if(path.includes('/observations/'))d.properties.station=origin+'/stations/EVIL';return d;}]){
-    const f=fixture({mutate});await assert.rejects(f.service.current(coord),/observation|station|identity/);assert(f.calls.length<=5);
+    const f=fixture({mutate});await assert.rejects(f.service.current(coord),/observation|station|identity/);assert(f.calls.length<=6);
   }
 });
 test('missing or rejected observation fields never become fabricated numeric answers',async()=>{
@@ -66,7 +66,7 @@ test('missing or rejected observation fields never become fabricated numeric ans
     const metric={temperature:'temperature',windSpeed:'wind_speed',relativeHumidity:'humidity'}[field];
     const f=fixture({mutate:(d,path)=>{if(path.includes('/observations/'))d.properties[field].value=value;return d;}});await assert.rejects(f.service.current({...coord,metric}),/observation/);
   }
-  const f=fixture({mutate:(d,path)=>{if(path.includes('/observations/'))d.properties.temperature.qualityControl='Z';return d;}});await assert.rejects(f.service.current(coord),/rejected-quality/);
+  const f=fixture({mutate:(d,path)=>{if(path.includes('/observations/'))d.properties.temperature.qualityControl='Z';return d;}});await assert.rejects(f.service.current(coord),{code:'NO_FRESH_OBSERVATION'});
 });
 test('alerts include only actual matching active/upcoming warnings, deduplicate and preserve instructions',async()=>{
   const a=await fixture().service.alerts({...coord,metric:'alert_count'});assert.equal(a.alert_count,1);assert.equal(a.score_value,'1');assert.equal(a.max_severity,3);assert.equal(a.alerts[0].instruction,'Follow official local instructions.');assert.equal(a.all_clear,false);
@@ -102,3 +102,30 @@ test('HTTP weather mappings preserve text/scalars, reject bad inputs and preserv
 });
 
 test('forecast distinguishes issue age from generated response age',async()=>{const f=fixture();f.data.forecast.properties.updateTime='2026-10-31T17:00:00Z';const a=await f.service.forecast(coord);assert.equal(a.forecast_issue_age_hours,12.5);assert.match(a.summary,/2026-10-31T17:00:00Z/);const g=fixture();g.data.forecast.properties.generatedAt='2026-11-01T01:00:00Z';await assert.rejects(g.service.forecast(coord),/generation is older/);});
+
+test('current observations refuse subjective-bad, temporal-only and unknown QC flags instead of claiming verified weather',async()=>{
+  for(const flag of ['B','T','UNKNOWN','']){const f=fixture({mutate:(d,path)=>{if(path.includes('/observations/'))d.properties.temperature.qualityControl=flag;return d;}});await assert.rejects(f.service.current(coord),/observation|quality/);}
+  for(const flag of ['C','S','V','G']){const f=fixture({mutate:(d,path)=>{if(path.includes('/observations/'))d.properties.temperature.qualityControl=flag;return d;}});const a=await f.service.current(coord);assert.equal(a.verified_answer,true);assert.equal(a.observation_quality.temperature,flag);assert.equal(a.observation_quality.humidity,'not_supplied');}
+});
+
+test('bad nearest-station measurements can use the next fresh source without returning the rejected value',async()=>{const f=fixture({mutate:(d,path)=>{if(path.includes('/stations/KONE/observations/')){d.properties.temperature.qualityControl='B';d.properties.temperature.value=69;}return d;}});const a=await f.service.current(coord);assert.equal(a.station.id,'KTWO');assert.equal(a.metrics.temperature,20);assert.equal(a.observation_quality.temperature,'V');assert.equal(f.calls.filter(x=>x.url.includes('/observations/')).length,2);});
+
+function historyObservation(timestamp='2026-11-01T05:00:00Z',temperature=20){return {type:'Feature',properties:{station:origin+'/stations/KONE',timestamp,temperature:{value:temperature,unitCode:'wmoUnit:degC',qualityControl:'V'},windSpeed:{value:0,unitCode:'wmoUnit:km_h-1',qualityControl:'V'},relativeHumidity:{value:50,unitCode:'wmoUnit:percent',qualityControl:'V'}}};}
+function blankLatest(d,path){if(path.includes('/observations/latest'))d.properties.temperature.value=null;return d;}
+test('blank latest reports may use one bounded same-station history page without relaxing age, distance or source budget',async()=>{
+ const f=fixture({mutate:(d,path)=>path.endsWith('/observations')?{type:'FeatureCollection',features:[historyObservation('2026-11-01T05:20:00Z',null),historyObservation()],pagination:{next:'https://example.com/never-follow'}}:blankLatest(d,path)});
+ const a=await f.service.current(coord);assert.equal(a.observation_selection,'recent_valid_same_station_report');assert.equal(a.station.id,'KONE');assert.equal(a.observed_at,'2026-11-01T05:00:00Z');assert.equal(a.metrics.temperature,20);assert.equal(a.metrics.wind_speed,0);assert.equal(a.history_lookback_minutes,90);assert.equal(a.history_records_examined,2);assert.equal(a.source_http_requests,6);assert.equal(f.calls.length,6);assert(f.calls.every(c=>c.url.startsWith(origin+'/')));
+});
+test('history never turns stale, future, rejected, wrong-station, unordered or oversized data into current weather',async()=>{
+ for(const [record,code]of [[historyObservation('2026-11-01T03:59:00Z'),'NO_FRESH_OBSERVATION'],[historyObservation('2026-11-01T05:36:00Z'),'NO_FRESH_OBSERVATION'],[{...historyObservation(),properties:{...historyObservation().properties,station:origin+'/stations/EVIL'}},'INVALID_SOURCE']]){const f=fixture({mutate:(d,path)=>path.endsWith('/observations')?{type:'FeatureCollection',features:[record]}:blankLatest(d,path)});await assert.rejects(f.service.current(coord),{code});assert(f.calls.length<=6);}
+ for(const features of [[historyObservation('2026-11-01T05:00:00Z'),historyObservation('2026-11-01T05:20:00Z')],[historyObservation(),historyObservation('2026-11-01T05:00:00Z',21)],Array.from({length:33},()=>historyObservation())]){const f=fixture({mutate:(d,path)=>path.endsWith('/observations')?{type:'FeatureCollection',features}:blankLatest(d,path)});await assert.rejects(f.service.current(coord),{code:'INVALID_SOURCE'});}
+ const bad=historyObservation();bad.properties.temperature.qualityControl='B';const f=fixture({mutate:(d,path)=>path.endsWith('/observations')?{type:'FeatureCollection',features:[bad]}:blankLatest(d,path)});await assert.rejects(f.service.current(coord),{code:'NO_FRESH_OBSERVATION'});
+});
+test('an invalid optional measurement stays unavailable without suppressing a valid requested temperature',async()=>{
+ const f=fixture({mutate:(d,path)=>{if(path.includes('/observations/latest'))d.properties.windSpeed.qualityControl='B';return d;}}),a=await f.service.current({...coord,metric:'temperature'});assert.equal(a.score_value,'20');assert.equal(a.metrics.wind_speed,null);assert.deepEqual(a.unavailable_measurements,['wind_speed']);assert.equal(a.observation_quality.wind_speed,'B');assert.equal(a.source_http_requests,3);
+ const summary=await f.service.current(coord);assert.match(summary.summary,/wind unavailable/);assert.equal(summary.metrics.wind_speed,null);
+ await assert.rejects(f.service.current({...coord,metric:'wind_speed'}),{code:'NO_FRESH_OBSERVATION'});
+});
+test('a history source failure is explicit and never becomes a fabricated successful observation',async()=>{
+ const f=fixture({mutate:(d,path)=>path.endsWith('/observations')?new Response('unavailable',{status:503}):blankLatest(d,path)});await assert.rejects(f.service.current(coord),{code:'WEATHER_SOURCE_UNAVAILABLE'});
+});
